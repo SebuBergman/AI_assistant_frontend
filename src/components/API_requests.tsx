@@ -13,11 +13,16 @@ export const rewriteEmail = async (email: string, tone: string) => {
   }
 };
 
-export const askAI = async (prompt: string, model: string) => {
+export const askAI = async (
+  question: string,
+  model: string,
+  temperature: number
+) => {
   try {
     const response = await axios.post("http://localhost:8000/ask_ai", {
-      prompt,
+      question,
       model,
+      temperature,
     });
     return response.data.answer || "No response received.";
   } catch (error) {

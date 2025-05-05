@@ -19,6 +19,7 @@ export default function Home() {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [aiModel, setAiModel] = useState("deepseek-chat");
+  const [temperature, setTemperature] = useState(0.7);
 
   const handleEmailSubmit = async () => {
     setLoading(true);
@@ -31,7 +32,7 @@ export default function Home() {
   const handleAISubmit = async () => {
     setLoading(true);
     setResult("");
-    const response = await askAI(question, aiModel);
+    const response = await askAI(question, aiModel, temperature);
     setResult(response);
     setLoading(false);
   };
@@ -157,6 +158,41 @@ export default function Home() {
                 }}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
+              />
+            </Box>
+
+            <Box
+              style={{ marginBottom: "20px", width: "100%" }}
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+            >
+              <Typography
+                variant="body1"
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  color: "black",
+                }}
+              >
+                Creativity/Temperature (0-2):
+              </Typography>
+              <TextField
+                type="number"
+                inputProps={{
+                  min: 0,
+                  max: 2,
+                  step: 0.1,
+                }}
+                value={temperature}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  if (val >= 0 && val <= 2) {
+                    setTemperature(val);
+                  }
+                }}
+                style={{ width: "100%" }}
+                helperText="Lower = more factual, Higher = more creative"
               />
             </Box>
 
