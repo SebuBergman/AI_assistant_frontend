@@ -148,10 +148,10 @@ export default function Home() {
               style={{ marginBottom: "10px", marginTop: "25px" }}
             >
               <TextField
-                id="question"
-                label="Enter your question here"
+                id="prompt"
+                label="Enter your prompt here"
                 multiline
-                rows={4}
+                rows={6}
                 style={{
                   width: "100%",
                   fontSize: "16px",
@@ -196,54 +196,47 @@ export default function Home() {
               />
             </Box>
 
-            <Box
-              style={{ marginBottom: "20px" }}
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              width="100%"
+            <Select
+              value={aiModel}
+              onChange={(e) => setAiModel(e.target.value)}
+              style={{ width: "100%" }}
             >
+              {/* DeepSeek Models Section */}
               <Typography
-                variant="body1"
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  color: "black",
-                }}
+                variant="h6"
+                style={{ padding: "8px 16px", color: "gray" }}
               >
-                Select an AI model:
+                DeepSeek Models
               </Typography>
+              {deepseekModels.map((model) => (
+                <MenuItem key={model.id} value={model.id}>
+                  <div>
+                    <div style={{ fontWeight: 500 }}>{model.name}</div>
+                    <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                      {model.description}
+                    </div>
+                  </div>
+                </MenuItem>
+              ))}
 
-              <Select
-                value={aiModel}
-                onChange={(e) => setAiModel(e.target.value)}
-                style={{ width: "100%" }}
+              {/* ChatGPT Models Section */}
+              <Typography
+                variant="h6"
+                style={{ padding: "8px 16px", color: "gray" }}
               >
-                <Typography
-                  variant="h6"
-                  style={{ padding: "8px 16px", color: "gray" }}
-                >
-                  DeepSeek Models
-                </Typography>
-                {deepseekModels.map((model) => (
-                  <MenuItem key={model.id} value={model.id}>
-                    {model.name}
-                  </MenuItem>
-                ))}
-
-                <Typography
-                  variant="h6"
-                  style={{ padding: "8px 16px", color: "gray" }}
-                >
-                  ChatGPT Models
-                </Typography>
-                {chatgptModels.map((model) => (
-                  <MenuItem key={model.id} value={model.id}>
-                    {model.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Box>
+                ChatGPT Models
+              </Typography>
+              {chatgptModels.map((model) => (
+                <MenuItem key={model.id} value={model.id}>
+                  <div>
+                    <div style={{ fontWeight: 500 }}>{model.name}</div>
+                    <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                      {model.description}
+                    </div>
+                  </div>
+                </MenuItem>
+              ))}
+            </Select>
 
             <Button
               style={{
