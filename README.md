@@ -1,9 +1,10 @@
 # Frontend Repository (React + TypeScript + Vite)<br>
 📌 Project Name: GenAI Email Assistant & AI Chat Frontend<br>
+
 🚀 Description:<br>
 A responsive frontend for a GenAI-powered email rewriting tool and versatile AI assistant. Customize email tones (professional, friendly, persuasive) or chat with an AI assistant using multiple models. Built with React, TypeScript, and Vite for blazing-fast performance.
 
-🛠️ Tech Stack:
+🛠️ Tech Stack:<br>
 React + TypeScript<br>
 Vite (Dev Server)<br>
 Material UI (Styling)<br>
