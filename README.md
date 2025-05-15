@@ -11,7 +11,6 @@ Material UI (Styling)<br>
 OpenAI API Integration
 
 🧰 Getting Started:<br>
-
 Clone the repo:
 ```bash
 git clone https://github.com/SebuBergman/AI_assistant_frontend.git
@@ -29,7 +28,6 @@ npm run dev
 ```
 
 → App runs at http://localhost:5173
-
 🔗 Backend Required: Ensure the backend server is running for full functionality.
 
 <a href="https://github.com/SebuBergman/AI_assistant_backend">AI back-end</a>
