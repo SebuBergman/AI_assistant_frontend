@@ -5,12 +5,12 @@ A responsive frontend for a GenAI-powered email rewriting tool and versatile AI 
 
 🛠️ Tech Stack:
 
-React + TypeScript
-Vite (Dev Server)
-Material UI (Styling)
+React + TypeScript<br>
+Vite (Dev Server)<br>
+Material UI (Styling)<br>
 OpenAI API Integration
 
-🧰 Getting Started:</br>
+🧰 Getting Started:<br>
 
 Clone the repo:
 ```bash
