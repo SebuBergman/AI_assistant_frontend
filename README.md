@@ -10,21 +10,26 @@ Vite (Dev Server)
 Material UI (Styling)
 OpenAI API Integration
 
-🧰 Getting Started:
-Clone the repo:
+🧰 Getting Started:</br>
 
-bash
+Clone the repo:
+```bash
 git clone https://github.com/SebuBergman/AI_assistant_frontend.git
 cd AI_assistant_frontend
+```
 
 Install dependencies:
-bash
+```bash
 npm install
-Run locally (dev mode):
+```
 
-bash
+Run locally (dev mode):
+```bash
 npm run dev
+```
+
 → App runs at http://localhost:5173
 
 🔗 Backend Required: Ensure the backend server is running for full functionality.
-https://github.com/SebuBergman/AI_assistant_backend
+
+<a href="https://github.com/SebuBergman/AI_assistant_backend">AI back-end github</a>
