@@ -28,6 +28,7 @@ npm run dev
 ```
 
 → App runs at http://localhost:5173
+
 🔗 Backend Required: Ensure the backend server is running for full functionality.
 
 <a href="https://github.com/SebuBergman/AI_assistant_backend">AI back-end</a>
