@@ -7,12 +7,55 @@ import {
   Select,
   TextField,
   Typography,
+  Paper,
+  Avatar,
+  LinearProgress,
+  Divider,
+  Tabs,
+  Tab,
+  styled,
+  useTheme,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import { rewriteEmail, askAI } from "../components/API_requests";
 import { tones, deepseekModels, chatgptModels } from "../components/data";
+import {
+  Email,
+  Chat,
+  AutoFixHigh,
+  Psychology,
+  SettingsSuggest,
+  Lightbulb,
+} from "@mui/icons-material";
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  borderRadius: "16px",
+  boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+  background: theme.palette.background.paper,
+}));
+
+const FeatureTabs = styled(Tabs)({
+  marginBottom: "24px",
+  "& .MuiTabs-indicator": {
+    height: 4,
+  },
+});
+
+const FeatureTab = styled(Tab)(({ theme }) => ({
+  textTransform: "none",
+  fontSize: "1rem",
+  fontWeight: 500,
+  minWidth: "120px",
+  "&.Mui-selected": {
+    color: theme.palette.primary.main,
+  },
+}));
 
 export default function Home() {
-  const [activeFeature, setActiveFeature] = useState("email");
+  const theme = useTheme();
+  const [activeFeature, setActiveFeature] = useState<"email" | "ai">("email");
   const [email, setEmail] = useState("");
   const [tone, setTone] = useState("professional");
   const [question, setQuestion] = useState("");
@@ -38,244 +81,247 @@ export default function Home() {
   };
 
   return (
-    <Container maxWidth="md" style={{ padding: "20px" }}>
-      <Box
-        display="flex"
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="center"
-        style={{
-          backgroundColor: "white",
-          padding: "40px 20px 40px 20px",
-          borderRadius: "10px",
-        }}
-      >
-        <Typography variant="h1" style={{ color: "black" }}>
-          AI Assistant
-        </Typography>
-
-        {/* Feature Selection Menu */}
-        <Box style={{ marginBottom: "20px", width: "100%" }}>
-          <Select
-            value={activeFeature}
-            onChange={(e) => setActiveFeature(e.target.value)}
-            style={{ width: "100%" }}
-          >
-            <MenuItem value="email">Email Assistant</MenuItem>
-            <MenuItem value="ask-ai">Ask the AI</MenuItem>
-          </Select>
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <StyledPaper>
+        {/* Header */}
+        <Box textAlign="center" mb={4}>
+          <Typography variant="h3" fontWeight="bold" gutterBottom>
+            <Box
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              gap={1}
+            >
+              <SettingsSuggest fontSize="large" color="primary" />
+              AI Assistant
+            </Box>
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            Enhance your productivity with AI-powered tools
+          </Typography>
         </Box>
+
+        {/* Feature Selection Tabs */}
+        <FeatureTabs
+          value={activeFeature === "email" ? 0 : 1}
+          onChange={(_, newValue) =>
+            setActiveFeature(newValue === 0 ? "email" : "ai")
+          }
+          centered
+        >
+          <FeatureTab
+            icon={<Email />}
+            iconPosition="start"
+            label="Email Assistant"
+          />
+          <FeatureTab
+            icon={<Psychology />}
+            iconPosition="start"
+            label="AI Chat"
+          />
+        </FeatureTabs>
 
         {activeFeature === "email" ? (
           <>
-            <Typography variant="body1" style={{ color: "black" }}>
-              Rewrite and summarize your email with your chosen tone
-              (professional, friendly, or persuasive).
+            <Typography variant="h6" fontWeight="medium" gutterBottom>
+              <AutoFixHigh
+                color="primary"
+                sx={{ verticalAlign: "middle", mr: 1 }}
+              />
+              Email Rewriter
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mb={3}>
+              Paste your email below and select a tone to get an improved
+              version
             </Typography>
 
-            <Box
-              width={"100%"}
-              style={{ marginBottom: "10px", marginTop: "25px" }}
-            >
-              <TextField
-                id="email"
-                label="Enter your email here"
-                multiline
-                rows={4}
-                style={{
-                  width: "100%",
-                  fontSize: "16px",
-                }}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </Box>
+            <TextField
+              fullWidth
+              multiline
+              rows={6}
+              variant="outlined"
+              label="Original Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              sx={{ mb: 3 }}
+            />
 
-            <Box
-              style={{ marginBottom: "20px" }}
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-            >
-              <Typography
-                variant="body1"
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  color: "black",
-                }}
-              >
-                Select a tone:
-              </Typography>
-              <Select
-                id="tone"
-                style={{ width: "100%", padding: "10px", fontSize: "16px" }}
-                value={tone}
-                onChange={(e) => setTone(e.target.value)}
-              >
-                {tones.map((toneOption) => (
-                  <MenuItem key={toneOption} value={toneOption}>
-                    {toneOption.charAt(0).toUpperCase() + toneOption.slice(1)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Box>
+            <Box display="flex" gap={3} mb={4}>
+              <FormControl fullWidth>
+                <InputLabel>Tone</InputLabel>
+                <Select
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  label="Tone"
+                >
+                  {tones.map((toneOption) => (
+                    <MenuItem key={toneOption} value={toneOption}>
+                      {toneOption.charAt(0).toUpperCase() + toneOption.slice(1)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-            <Button
-              style={{
-                padding: "10px 20px",
-                fontSize: "16px",
-                backgroundColor: "#007BFF",
-                color: "#fff",
-                border: "none",
-                cursor: "pointer",
-                borderRadius: "5px",
-              }}
-              onClick={handleEmailSubmit}
-              disabled={loading}
-            >
-              {loading ? "Processing..." : "Rewrite Email"}
-            </Button>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleEmailSubmit}
+                disabled={loading || !email.trim()}
+                sx={{ minWidth: 200 }}
+                startIcon={<AutoFixHigh />}
+              >
+                {loading ? "Rewriting..." : "Rewrite Email"}
+              </Button>
+            </Box>
           </>
         ) : (
           <>
-            <Typography variant="body1" style={{ color: "black" }}>
-              Ask different AI models to answer your prompts.
+            <Typography variant="h6" fontWeight="medium" gutterBottom>
+              <Chat color="primary" sx={{ verticalAlign: "middle", mr: 1 }} />
+              AI Chat
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mb={3}>
+              Ask questions to different AI models with adjustable creativity
             </Typography>
 
-            <Box
-              width={"100%"}
-              style={{ marginBottom: "10px", marginTop: "25px" }}
-            >
-              <TextField
-                id="prompt"
-                label="Enter your prompt here"
-                multiline
-                rows={6}
-                style={{
-                  width: "100%",
-                  fontSize: "16px",
-                }}
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-              />
+            <TextField
+              fullWidth
+              multiline
+              rows={6}
+              variant="outlined"
+              label="Your question or prompt"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              sx={{ mb: 3 }}
+            />
+
+            <Box display="flex" gap={3} mb={4} flexWrap="wrap">
+              <FormControl sx={{ flex: 1, minWidth: 200 }}>
+                <InputLabel>AI Model</InputLabel>
+                <Select
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                  label="AI Model"
+                >
+                  <Box px={2} py={1}>
+                    <Typography variant="overline" color="text.secondary">
+                      DeepSeek Models
+                    </Typography>
+                  </Box>
+                  {deepseekModels.map((model) => (
+                    <MenuItem key={model.id} value={model.id}>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <Avatar
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            bgcolor: theme.palette.primary.main,
+                          }}
+                        >
+                          <Typography variant="caption">DS</Typography>
+                        </Avatar>
+                        <Box>
+                          <Typography>{model.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {model.description}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </MenuItem>
+                  ))}
+
+                  <Divider sx={{ my: 1 }} />
+
+                  <Box px={2} py={1}>
+                    <Typography variant="overline" color="text.secondary">
+                      ChatGPT Models
+                    </Typography>
+                  </Box>
+                  {chatgptModels.map((model) => (
+                    <MenuItem key={model.id} value={model.id}>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <Avatar
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            bgcolor: theme.palette.success.main,
+                          }}
+                        >
+                          <Typography variant="caption">GPT</Typography>
+                        </Avatar>
+                        <Box>
+                          <Typography>{model.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {model.description}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl sx={{ width: 180 }}>
+                <TextField
+                  label="Creativity"
+                  type="number"
+                  value={temperature}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (val >= 0 && val <= 2) setTemperature(val);
+                  }}
+                  inputProps={{
+                    min: 0,
+                    max: 2,
+                    step: 0.1,
+                  }}
+                  helperText="0 = precise, 2 = creative"
+                />
+              </FormControl>
+
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleAISubmit}
+                disabled={loading || !question.trim()}
+                sx={{ minWidth: 120 }}
+                startIcon={<Lightbulb />}
+              >
+                {loading ? "Thinking..." : "Ask AI"}
+              </Button>
             </Box>
-
-            <Box
-              style={{ marginBottom: "20px", width: "100%" }}
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-            >
-              <Typography
-                variant="body1"
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  color: "black",
-                }}
-              >
-                Creativity/Temperature (0-2):
-              </Typography>
-              <TextField
-                type="number"
-                inputProps={{
-                  min: 0,
-                  max: 2,
-                  step: 0.1,
-                }}
-                value={temperature}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  if (val >= 0 && val <= 2) {
-                    setTemperature(val);
-                  }
-                }}
-                style={{ width: "100%" }}
-                helperText="Lower = more factual, Higher = more creative"
-              />
-            </Box>
-
-            <Select
-              value={aiModel}
-              onChange={(e) => setAiModel(e.target.value)}
-              style={{ width: "100%" }}
-            >
-              {/* DeepSeek Models Section */}
-              <Typography
-                variant="h6"
-                style={{ padding: "8px 16px", color: "gray" }}
-              >
-                DeepSeek Models
-              </Typography>
-              {deepseekModels.map((model) => (
-                <MenuItem key={model.id} value={model.id}>
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{model.name}</div>
-                    <div style={{ fontSize: "0.8rem", color: "#666" }}>
-                      {model.description}
-                    </div>
-                  </div>
-                </MenuItem>
-              ))}
-
-              {/* ChatGPT Models Section */}
-              <Typography
-                variant="h6"
-                style={{ padding: "8px 16px", color: "gray" }}
-              >
-                ChatGPT Models
-              </Typography>
-              {chatgptModels.map((model) => (
-                <MenuItem key={model.id} value={model.id}>
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{model.name}</div>
-                    <div style={{ fontSize: "0.8rem", color: "#666" }}>
-                      {model.description}
-                    </div>
-                  </div>
-                </MenuItem>
-              ))}
-            </Select>
-
-            <Button
-              style={{
-                padding: "10px 20px",
-                fontSize: "16px",
-                backgroundColor: "#007BFF",
-                color: "#fff",
-                border: "none",
-                cursor: "pointer",
-                borderRadius: "5px",
-              }}
-              onClick={handleAISubmit}
-              disabled={loading}
-            >
-              {loading ? "Processing..." : "Ask AI"}
-            </Button>
           </>
         )}
 
+        {loading && <LinearProgress sx={{ mb: 3 }} />}
+
         {result && (
           <Box
-            style={{
-              marginTop: "20px",
-              padding: "10px",
-              border: "1px solid #ccc",
-              borderRadius: "5px",
-              backgroundColor: "#f9f9f9",
-              width: "100%",
-            }}
+            mt={4}
+            p={3}
+            border={`1px solid ${theme.palette.divider}`}
+            borderRadius="12px"
+            bgcolor={theme.palette.background.default}
           >
-            <Typography variant="h6" style={{ color: "black" }}>
-              {activeFeature === "email" ? "Rewritten Email:" : "AI Response:"}
+            <Typography variant="h6" fontWeight="medium" gutterBottom>
+              {activeFeature === "email" ? (
+                <Box display="flex" alignItems="center" gap={1}>
+                  <AutoFixHigh color="primary" />
+                  Rewritten Email
+                </Box>
+              ) : (
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Chat color="primary" />
+                  AI Response
+                </Box>
+              )}
             </Typography>
-            <Typography variant="body1" style={{ color: "black" }}>
+            <Typography variant="body1" whiteSpace="pre-wrap">
               {result}
             </Typography>
           </Box>
         )}
-      </Box>
+      </StyledPaper>
     </Container>
   );
 }
