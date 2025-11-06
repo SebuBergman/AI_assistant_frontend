@@ -19,7 +19,7 @@ import {
   InputLabel,
 } from "@mui/material";
 import { rewriteEmail, askAI } from "../components/API_requests";
-import { tones, deepseekModels, chatgptModels } from "../components/data";
+import { tones, deepseekModels, chatgptModels, claudeModels } from "../components/data";
 import {
   Email,
   Chat,
@@ -205,7 +205,7 @@ export default function Home() {
                 >
                   <Box px={2} py={1}>
                     <Typography variant="overline" color="text.secondary">
-                      DeepSeek Models
+                      DeepSeek Models for chat and reasoning
                     </Typography>
                   </Box>
                   {deepseekModels.map((model) => (
@@ -234,7 +234,7 @@ export default function Home() {
 
                   <Box px={2} py={1}>
                     <Typography variant="overline" color="text.secondary">
-                      ChatGPT Models
+                      ChatGPT Models for various tasks
                     </Typography>
                   </Box>
                   {chatgptModels.map((model) => (
@@ -248,6 +248,33 @@ export default function Home() {
                           }}
                         >
                           <Typography variant="caption">GPT</Typography>
+                        </Avatar>
+                        <Box>
+                          <Typography>{model.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {model.description}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </MenuItem>
+                  ))}
+
+                  <Box px={2} py={1}>
+                    <Typography variant="overline" color="text.secondary">
+                      Claude Models for programming
+                    </Typography>
+                  </Box>
+                  {claudeModels.map((model) => (
+                    <MenuItem key={model.id} value={model.id}>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <Avatar
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            bgcolor: theme.palette.error.main,
+                          }}
+                        >
+                          <Typography variant="caption">Cld</Typography>
                         </Avatar>
                         <Box>
                           <Typography>{model.name}</Typography>
