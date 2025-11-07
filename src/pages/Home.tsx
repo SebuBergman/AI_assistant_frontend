@@ -17,6 +17,7 @@ import {
   useTheme,
   FormControl,
   InputLabel,
+  Alert,
 } from "@mui/material";
 import { rewriteEmail, askAI } from "../components/API_requests";
 import { tones, deepseekModels, chatgptModels, claudeModels } from "../components/data";
@@ -27,6 +28,7 @@ import {
   Psychology,
   SettingsSuggest,
   Lightbulb,
+  Maximize,
 } from "@mui/icons-material";
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -58,26 +60,97 @@ export default function Home() {
   const [activeFeature, setActiveFeature] = useState<"email" | "ai">("email");
   const [email, setEmail] = useState("");
   const [tone, setTone] = useState("professional");
-  const [question, setQuestion] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  const [aiModel, setAiModel] = useState("deepseek-chat");
+  const [selectedModel, setSelectedModel] = useState("deepseek-chat");
   const [temperature, setTemperature] = useState(0.7);
+  const [error, setError] = useState("");
+
+  const [response, setResponse] = useState('');
+  const [reasoning, setReasoning] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
 
   const handleEmailSubmit = async () => {
     setLoading(true);
     setResult("");
-    const response = await rewriteEmail(email, tone);
-    setResult(response);
-    setLoading(false);
+    try {
+      const response = await rewriteEmail(email, tone);
+      setResult(response);
+    } catch (err) {
+      setError("Failed to rewrite email. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAISubmit = async () => {
+  const handleStream = async () => {
+    if (!prompt || !selectedModel) return;
+
     setLoading(true);
+    setIsStreaming(true);
+    setResponse("");
+    setReasoning("");
     setResult("");
-    const response = await askAI(question, aiModel, temperature);
-    setResult(response);
-    setLoading(false);
+    setError("");
+
+    try {
+      const res = await askAI(prompt, selectedModel, temperature);
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) {
+        throw new Error("Failed to get response reader");
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.error) {
+                console.error("Error:", data.error);
+                setError(`Error: ${data.error}`);
+                break;
+              }
+
+              if (data.done) {
+                break;
+              }
+
+              // Handle different content types (for deepseek-reasoner)
+              if (data.type === "reasoning") {
+                setReasoning((prev) => prev + data.content);
+              } else if (data.type === "content" || data.content) {
+                setResponse((prev) => prev + data.content);
+              }
+            } catch (e) {
+              console.error("Parse error:", e);
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error("Streaming error:", error);
+      setError(`Streaming error: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsStreaming(false);
+      setLoading(false);
+    }
   };
 
   return (
@@ -120,6 +193,13 @@ export default function Home() {
             label="AI Chat"
           />
         </FeatureTabs>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError("")}>
+            {error}
+          </Alert>
+        )}
 
         {activeFeature === "email" ? (
           <>
@@ -190,8 +270,8 @@ export default function Home() {
               rows={6}
               variant="outlined"
               label="Your question or prompt"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
               sx={{ mb: 3 }}
             />
 
@@ -199,8 +279,8 @@ export default function Home() {
               <FormControl sx={{ flex: 1, minWidth: 200 }}>
                 <InputLabel>AI Model</InputLabel>
                 <Select
-                  value={aiModel}
-                  onChange={(e) => setAiModel(e.target.value)}
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
                   label="AI Model"
                 >
                   <Box px={2} py={1}>
@@ -302,19 +382,23 @@ export default function Home() {
                     max: 2,
                     step: 0.1,
                   }}
-                  helperText="0 = precise, 2 = creative"
+                  helperText="0 = precise, 1 = creative"
                 />
               </FormControl>
 
               <Button
                 variant="contained"
                 size="large"
-                onClick={handleAISubmit}
-                disabled={loading || !question.trim()}
-                sx={{ minWidth: 120 }}
+                onClick={handleStream}
+                disabled={
+                  loading || isStreaming || !prompt.trim() || !selectedModel
+                }
+                sx={{
+                  minWidth: 120,
+                }}
                 startIcon={<Lightbulb />}
               >
-                {loading ? "Thinking..." : "Ask AI"}
+                {isStreaming ? "Streaming..." : "Ask AI"}
               </Button>
             </Box>
           </>
@@ -322,7 +406,32 @@ export default function Home() {
 
         {loading && <LinearProgress sx={{ mb: 3 }} />}
 
-        {result && (
+        {/* Reasoning Display (for deepseek-reasoner) */}
+        {reasoning && (
+          <Box
+            mt={4}
+            p={3}
+            border={`2px dashed ${theme.palette.warning.main}`}
+            borderRadius="12px"
+            bgcolor={theme.palette.warning.light + "20"}
+          >
+            <Typography variant="h6" fontWeight="medium" gutterBottom>
+              <Box display="flex" alignItems="center" gap={1}>
+                <Psychology color="warning" />
+                Reasoning Process
+              </Box>
+            </Typography>
+            <Typography
+              variant="body1"
+              whiteSpace="pre-wrap"
+              sx={{ fontFamily: "monospace", fontSize: "0.9rem" }}
+            >
+              {reasoning}
+            </Typography>
+          </Box>
+        )}
+
+        {(result || response) && (
           <Box
             mt={4}
             p={3}
@@ -344,7 +453,7 @@ export default function Home() {
               )}
             </Typography>
             <Typography variant="body1" whiteSpace="pre-wrap">
-              {result}
+              {result || response}
             </Typography>
           </Box>
         )}
