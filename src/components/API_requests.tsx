@@ -19,14 +19,21 @@ export const askAI = async (
   temperature: number
 ) => {
   try {
-    const response = await axios.post("http://localhost:8000/ask_ai", {
-      question,
-      model,
-      temperature,
+    const response = await fetch("http://localhost:8000/ask_ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question,
+        model,
+        temperature,
+      }),
     });
-    return response.data.answer || "No response received.";
+    
+    return response; // Return the Response object directly for streaming
   } catch (error) {
     console.error("Error:", error);
-    return "An error occurred while processing your request.";
+    throw error; // Throw the error so it can be caught in Home.tsx
   }
 };
