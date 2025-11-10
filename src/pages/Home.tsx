@@ -30,6 +30,7 @@ import {
   Lightbulb,
   Maximize,
 } from "@mui/icons-material";
+import { Streamdown } from "streamdown";
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -452,9 +453,9 @@ export default function Home() {
                 </Box>
               )}
             </Typography>
-            <Typography variant="body1" whiteSpace="pre-wrap">
+            <Streamdown>
               {result || response}
-            </Typography>
+            </Streamdown>
           </Box>
         )}
       </StyledPaper>
