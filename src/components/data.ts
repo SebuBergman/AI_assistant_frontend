@@ -53,27 +53,27 @@ export const chatgptModels = [
 
 export const claudeModels = [
   {
-    id: "claude-3.5-haiku",
+    id: "claude-haiku-3-5",
     name: "Claude 3.5 Haiku",
     description: "Quick and affordable; ideal for chat, summarization, and translation",
   },
   {
-    id: "claude-3.5-sonnet",
+    id: "claude-sonnet-3-5",
     name: "Claude 3.5 Sonnet",
     description: "Balanced power and speed; strong at reasoning, writing, and coding",
   },
   {
-    id: "claude-3.7-sonnet",
+    id: "claude-sonnet-3-7",
     name: "Claude 3.7 Sonnet",
     description: "Enhanced reasoning and adaptive performance for agentic tasks",
   },
   {
-    id: "claude-4.5-sonnet",
+    id: "claude-sonnet-4-5",
     name: "Claude Sonnet 4.5",
     description: "Next-gen Sonnet tier optimized for enterprise-scale workloads",
   },
   {
-    id: "claude-4.1-opus",
+    id: "claude-opus-4-1",
     name: "Claude Opus 4.1",
     description: "Flagship model offering the deepest reasoning and longest context window",
   },
