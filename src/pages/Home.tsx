@@ -1,89 +1,60 @@
-import { useState } from "react";
+
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Button,
-  Container,
-  MenuItem,
-  Select,
   TextField,
+  Select,
+  MenuItem,
   Typography,
-  Paper,
-  Avatar,
-  LinearProgress,
-  Divider,
-  Tabs,
+  IconButton,
+  Drawer,
+  AppBar,
+  Toolbar,
   Tab,
-  styled,
-  useTheme,
+  Tabs,
+  LinearProgress,
+  Alert,
   FormControl,
   InputLabel,
-  Alert,
-} from "@mui/material";
-import { rewriteEmail, askAI } from "../components/API_requests";
-import { tones, deepseekModels, chatgptModels, claudeModels } from "../components/data";
+  ListSubheader,
+} from '@mui/material';
 import {
+  Menu as MenuIcon,
+  Add as AddIcon,
   Email,
-  Chat,
-  AutoFixHigh,
   Psychology,
+  AutoFixHigh,
+  Chat,
+  Send,
   SettingsSuggest,
-  Lightbulb,
-  Maximize,
-} from "@mui/icons-material";
-import { Streamdown } from "streamdown";
+  Close as CloseIcon,
+} from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
 
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
-  borderRadius: "16px",
-  boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-  background: theme.palette.background.paper,
-}));
+import { askAI, rewriteEmail } from '../components/API_requests';
+import { chatgptModels, claudeModels, deepseekModels, tones } from '../components/data';
 
-const FeatureTabs = styled(Tabs)({
-  marginBottom: "24px",
-  "& .MuiTabs-indicator": {
-    height: 4,
-  },
-});
-
-const FeatureTab = styled(Tab)(({ theme }) => ({
-  textTransform: "none",
-  fontSize: "1rem",
-  fontWeight: 500,
-  minWidth: "120px",
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-  },
-}));
-
-export default function Home() {
+export default function AIAssistant() {
   const theme = useTheme();
-  const [activeFeature, setActiveFeature] = useState<"email" | "ai">("email");
-  const [email, setEmail] = useState("");
-  const [tone, setTone] = useState("professional");
-  const [prompt, setPrompt] = useState("");
-  const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("deepseek-chat");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeFeature, setActiveFeature] = useState('ai');
+  const [prompt, setPrompt] = useState('');
+  const [email, setEmail] = useState('');
+  const [tone, setTone] = useState('professional');
+  const [selectedModel, setSelectedModel] = useState('deepseek-chat');
   const [temperature, setTemperature] = useState(0.7);
-  const [error, setError] = useState("");
-
-  const [response, setResponse] = useState('');
-  const [reasoning, setReasoning] = useState('');
+  const [loading, setLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [response, setResponse] = useState('');
+  const [result, setResult] = useState('');
+  const [reasoning, setReasoning] = useState('');
+  const [error, setError] = useState('');
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  const handleEmailSubmit = async () => {
-    setLoading(true);
-    setResult("");
-    try {
-      const response = await rewriteEmail(email, tone);
-      setResult(response);
-    } catch (err) {
-      setError("Failed to rewrite email. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [response, result, reasoning]);
 
   const handleStream = async () => {
     if (!prompt || !selectedModel) return;
@@ -133,7 +104,6 @@ export default function Home() {
                 break;
               }
 
-              // Handle different content types (for deepseek-reasoner)
               if (data.type === "reasoning") {
                 setReasoning((prev) => prev + data.content);
               } else if (data.type === "content" || data.content) {
@@ -145,320 +115,357 @@ export default function Home() {
           }
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Streaming error:", error);
-      setError(`Streaming error: ${error.message || "Unknown error"}`);
+      setError(`Streaming error: ${error || "Unknown error"}`);
     } finally {
       setIsStreaming(false);
       setLoading(false);
+      setCurrentInput('');
+    }
+  };
+
+  const handleEmailSubmit = async () => {
+    setLoading(true);
+    setResult("");
+    setError("");
+    try {
+      const response = await rewriteEmail(email, tone);
+      setResult(response);
+    } catch (err) {
+      setError("Failed to rewrite email. Please try again.");
+    } finally {
+      setLoading(false);
+      setCurrentInput('');
+    }
+  };
+
+  const handleSend = () => {
+    if (activeFeature === 'email') {
+      handleEmailSubmit();
+    } else {
+      handleStream();
+    }
+  };
+
+  const currentInput = activeFeature === 'email' ? email : prompt;
+  const setCurrentInput = (value: React.SetStateAction<string>) => {
+    if (activeFeature === 'email') {
+      setEmail(value);
+    } else {
+      setPrompt(value);
     }
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <StyledPaper>
-        {/* Header */}
-        <Box textAlign="center" mb={4}>
-          <Typography variant="h3" fontWeight="bold" gutterBottom>
-            <Box
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              gap={1}
+    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      {/* Sidebar */}
+      <Drawer
+        variant="persistent"
+        open={sidebarOpen}
+        sx={{
+          width: sidebarOpen ? 260 : 0,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: 260,
+            boxSizing: 'border-box',
+            bgcolor: '#1a1a1a',
+            borderRight: 'none',
+          },
+        }}
+      >
+        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            fullWidth
+            sx={{ 
+              mb: 2, 
+              justifyContent: 'flex-start',
+              color: 'white',
+              borderColor: 'rgba(255,255,255,0.2)',
+              '&:hover': {
+                borderColor: 'rgba(255,255,255,0.3)',
+                bgcolor: 'rgba(255,255,255,0.05)',
+              }
+            }}
+          >
+            New Chat
+          </Button>
+          
+          <Typography variant="caption" sx={{ px: 1, mb: 1, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+            CHAT HISTORY
+          </Typography>
+          
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            <Typography variant="body2" sx={{ px: 1, py: 2, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+              No saved chats yet
+            </Typography>
+          </Box>
+        </Box>
+      </Drawer>
+
+      {/* Main Content */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Top AppBar with Tabs */}
+        <AppBar position="static" color="default" elevation={1} sx={{ bgcolor: 'white' }}>
+          <Toolbar>
+            <IconButton
+              edge="start"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              sx={{ mr: 2 }}
             >
-              <SettingsSuggest fontSize="large" color="primary" />
-              AI Assistant
+              <MenuIcon />
+            </IconButton>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 3 }}>
+              <SettingsSuggest color="primary" />
+              <Typography variant="h6" fontWeight="bold">
+                AI Assistant
+              </Typography>
             </Box>
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Enhance your productivity with AI-powered tools
-          </Typography>
+
+            <Tabs
+              value={activeFeature === 'email' ? 0 : 1}
+              onChange={(_, newValue) =>
+                setActiveFeature(newValue === 0 ? 'email' : 'ai')
+              }
+            >
+              <Tab icon={<Email />} iconPosition="start" label="Email Assistant" />
+              <Tab icon={<Psychology />} iconPosition="start" label="AI Chat" />
+            </Tabs>
+          </Toolbar>
+        </AppBar>
+
+        {/* Chat Area */}
+        <Box
+          sx={{
+            flex: 1,
+            overflow: 'auto',
+            bgcolor: 'background.default',
+          }}
+        >
+          <Box sx={{ maxWidth: 1000, width: '100%', mx: 'auto', p: 3 }}>
+            {error && (
+              <Alert 
+                severity="error" 
+                sx={{ mb: 3 }} 
+                onClose={() => setError('')}
+                action={
+                  <IconButton size="small" onClick={() => setError('')}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                }
+              >
+                {error}
+              </Alert>
+            )}
+
+            {/* Welcome Message */}
+            {!response && !result && (
+              <Box textAlign="center" py={12}>
+                <Box display="flex" alignItems="center" justifyContent="center" gap={1} mb={2}>
+                  {activeFeature === 'email' ? (
+                    <>
+                      <AutoFixHigh sx={{ fontSize: 40 }} color="primary" />
+                      <Typography variant="h3" fontWeight="bold">
+                        Email Rewriter
+                      </Typography>
+                    </>
+                  ) : (
+                    <>
+                      <Chat sx={{ fontSize: 40 }} color="primary" />
+                      <Typography variant="h3" fontWeight="bold">
+                        AI Chat
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+                <Typography variant="h6" color="text.secondary">
+                  {activeFeature === 'email'
+                    ? 'Paste your email and select a tone to get an improved version'
+                    : 'Ask questions to different AI models with adjustable creativity'}
+                </Typography>
+              </Box>
+            )}
+
+            {loading && <LinearProgress sx={{ mb: 2 }} />}
+
+            {/* Reasoning Display */}
+            {reasoning && (
+              <Box
+                mb={3}
+                p={3}
+                border={`2px dashed ${theme.palette.warning.main}`}
+                borderRadius={2}
+                bgcolor={theme.palette.warning.light + '20'}
+              >
+                <Box display="flex" alignItems="center" gap={1} mb={1}>
+                  <Psychology color="warning" />
+                  <Typography variant="subtitle1" fontWeight="medium">
+                    Reasoning Process
+                  </Typography>
+                </Box>
+                <Typography 
+                  variant="body2" 
+                  component="pre"
+                  sx={{ 
+                    fontFamily: 'monospace', 
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {reasoning}
+                </Typography>
+              </Box>
+            )}
+
+            {/* Response Display */}
+            {(result || response) && (
+              <Box
+                p={3}
+                border={`1px solid ${theme.palette.divider}`}
+                borderRadius={2}
+                bgcolor="background.paper"
+                boxShadow={1}
+              >
+                <Box display="flex" alignItems="center" gap={1} mb={2}>
+                  {activeFeature === 'email' ? (
+                    <>
+                      <AutoFixHigh color="primary" />
+                      <Typography variant="subtitle1" fontWeight="medium">
+                        Rewritten Email
+                      </Typography>
+                    </>
+                  ) : (
+                    <>
+                      <Chat color="primary" />
+                      <Typography variant="subtitle1" fontWeight="medium">
+                        AI Response
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {result || response}
+                </Typography>
+              </Box>
+            )}
+            
+            <div ref={chatEndRef} />
+          </Box>
         </Box>
 
-        {/* Feature Selection Tabs */}
-        <FeatureTabs
-          value={activeFeature === "email" ? 0 : 1}
-          onChange={(_, newValue) =>
-            setActiveFeature(newValue === 0 ? "email" : "ai")
-          }
-          centered
+        {/* Bottom Input Area */}
+        <Box
+          sx={{
+            borderTop: `1px solid ${theme.palette.divider}`,
+            bgcolor: 'background.paper',
+            p: 2,
+          }}
         >
-          <FeatureTab
-            icon={<Email />}
-            iconPosition="start"
-            label="Email Assistant"
-          />
-          <FeatureTab
-            icon={<Psychology />}
-            iconPosition="start"
-            label="AI Chat"
-          />
-        </FeatureTabs>
+          <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
+            {/* Controls */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+              {activeFeature === 'ai' ? (
+                <>
+                  <FormControl size="small" sx={{ minWidth: 250 }}>
+                    <InputLabel>AI Model</InputLabel>
+                    <Select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      label="AI Model"
+                    >
+                      <ListSubheader>DeepSeek Models</ListSubheader>
+                      {deepseekModels.map((model) => (
+                        <MenuItem key={model.id} value={model.id}>
+                          {model.name}
+                        </MenuItem>
+                      ))}
+                      <ListSubheader>ChatGPT Models</ListSubheader>
+                      {chatgptModels.map((model) => (
+                        <MenuItem key={model.id} value={model.id}>
+                          {model.name}
+                        </MenuItem>
+                      ))}
+                      <ListSubheader>Claude Models</ListSubheader>
+                      {claudeModels.map((model) => (
+                        <MenuItem key={model.id} value={model.id}>
+                          {model.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
 
-        {/* Error Alert */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError("")}>
-            {error}
-          </Alert>
-        )}
-
-        {activeFeature === "email" ? (
-          <>
-            <Typography variant="h6" fontWeight="medium" gutterBottom>
-              <AutoFixHigh
-                color="primary"
-                sx={{ verticalAlign: "middle", mr: 1 }}
-              />
-              Email Rewriter
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
-              Paste your email below and select a tone to get an improved
-              version
-            </Typography>
-
-            <TextField
-              fullWidth
-              multiline
-              rows={6}
-              variant="outlined"
-              label="Original Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              sx={{ mb: 3 }}
-            />
-
-            <Box display="flex" gap={3} mb={4}>
-              <FormControl fullWidth>
-                <InputLabel>Tone</InputLabel>
-                <Select
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value)}
-                  label="Tone"
-                >
-                  {tones.map((toneOption) => (
-                    <MenuItem key={toneOption} value={toneOption}>
-                      {toneOption.charAt(0).toUpperCase() + toneOption.slice(1)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <Button
-                variant="contained"
-                size="large"
-                onClick={handleEmailSubmit}
-                disabled={loading || !email.trim()}
-                sx={{ minWidth: 200 }}
-                startIcon={<AutoFixHigh />}
-              >
-                {loading ? "Rewriting..." : "Rewrite Email"}
-              </Button>
-            </Box>
-          </>
-        ) : (
-          <>
-            <Typography variant="h6" fontWeight="medium" gutterBottom>
-              <Chat color="primary" sx={{ verticalAlign: "middle", mr: 1 }} />
-              AI Chat
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
-              Ask questions to different AI models with adjustable creativity
-            </Typography>
-
-            <TextField
-              fullWidth
-              multiline
-              rows={6}
-              variant="outlined"
-              label="Your question or prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              sx={{ mb: 3 }}
-            />
-
-            <Box display="flex" gap={3} mb={4} flexWrap="wrap">
-              <FormControl sx={{ flex: 1, minWidth: 200 }}>
-                <InputLabel>AI Model</InputLabel>
-                <Select
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                  label="AI Model"
-                >
-                  <Box px={2} py={1}>
-                    <Typography variant="overline" color="text.secondary">
-                      DeepSeek Models for chat and reasoning
-                    </Typography>
-                  </Box>
-                  {deepseekModels.map((model) => (
-                    <MenuItem key={model.id} value={model.id}>
-                      <Box display="flex" alignItems="center" gap={2}>
-                        <Avatar
-                          sx={{
-                            width: 24,
-                            height: 24,
-                            bgcolor: theme.palette.primary.main,
-                          }}
-                        >
-                          <Typography variant="caption">DS</Typography>
-                        </Avatar>
-                        <Box>
-                          <Typography>{model.name}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {model.description}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </MenuItem>
-                  ))}
-
-                  <Divider sx={{ my: 1 }} />
-
-                  <Box px={2} py={1}>
-                    <Typography variant="overline" color="text.secondary">
-                      ChatGPT Models for various tasks
-                    </Typography>
-                  </Box>
-                  {chatgptModels.map((model) => (
-                    <MenuItem key={model.id} value={model.id}>
-                      <Box display="flex" alignItems="center" gap={2}>
-                        <Avatar
-                          sx={{
-                            width: 24,
-                            height: 24,
-                            bgcolor: theme.palette.success.main,
-                          }}
-                        >
-                          <Typography variant="caption">GPT</Typography>
-                        </Avatar>
-                        <Box>
-                          <Typography>{model.name}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {model.description}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </MenuItem>
-                  ))}
-
-                  <Box px={2} py={1}>
-                    <Typography variant="overline" color="text.secondary">
-                      Claude Models for programming
-                    </Typography>
-                  </Box>
-                  {claudeModels.map((model) => (
-                    <MenuItem key={model.id} value={model.id}>
-                      <Box display="flex" alignItems="center" gap={2}>
-                        <Avatar
-                          sx={{
-                            width: 24,
-                            height: 24,
-                            bgcolor: theme.palette.error.main,
-                          }}
-                        >
-                          <Typography variant="caption">Cld</Typography>
-                        </Avatar>
-                        <Box>
-                          <Typography>{model.name}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {model.description}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl sx={{ width: 180 }}>
-                <TextField
-                  label="Creativity"
-                  type="number"
-                  value={temperature}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    if (val >= 0 && val <= 2) setTemperature(val);
-                  }}
-                  inputProps={{
-                    min: 0,
-                    max: 2,
-                    step: 0.1,
-                  }}
-                  helperText="0 = precise, 1 = creative"
-                />
-              </FormControl>
-
-              <Button
-                variant="contained"
-                size="large"
-                onClick={handleStream}
-                disabled={
-                  loading || isStreaming || !prompt.trim() || !selectedModel
-                }
-                sx={{
-                  minWidth: 120,
-                }}
-                startIcon={<Lightbulb />}
-              >
-                {isStreaming ? "Streaming..." : "Ask AI"}
-              </Button>
-            </Box>
-          </>
-        )}
-
-        {loading && <LinearProgress sx={{ mb: 3 }} />}
-
-        {/* Reasoning Display (for deepseek-reasoner) */}
-        {reasoning && (
-          <Box
-            mt={4}
-            p={3}
-            border={`2px dashed ${theme.palette.warning.main}`}
-            borderRadius="12px"
-            bgcolor={theme.palette.warning.light + "20"}
-          >
-            <Typography variant="h6" fontWeight="medium" gutterBottom>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Psychology color="warning" />
-                Reasoning Process
-              </Box>
-            </Typography>
-            <Typography
-              variant="body1"
-              whiteSpace="pre-wrap"
-              sx={{ fontFamily: "monospace", fontSize: "0.9rem" }}
-            >
-              {reasoning}
-            </Typography>
-          </Box>
-        )}
-
-        {(result || response) && (
-          <Box
-            mt={4}
-            p={3}
-            border={`1px solid ${theme.palette.divider}`}
-            borderRadius="12px"
-            bgcolor={theme.palette.background.default}
-          >
-            <Typography variant="h6" fontWeight="medium" gutterBottom>
-              {activeFeature === "email" ? (
-                <Box display="flex" alignItems="center" gap={1}>
-                  <AutoFixHigh color="primary" />
-                  Rewritten Email
-                </Box>
+                  <TextField
+                    size="small"
+                    label="Temperature"
+                    type="number"
+                    value={temperature}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (val >= 0 && val <= 2) setTemperature(val);
+                    }}
+                    inputProps={{ min: 0, max: 2, step: 0.1 }}
+                    sx={{ width: 120 }}
+                  />
+                </>
               ) : (
-                <Box display="flex" alignItems="center" gap={1}>
-                  <Chat color="primary" />
-                  AI Response
-                </Box>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Tone</InputLabel>
+                  <Select
+                    value={tone}
+                    onChange={(e) => setTone(e.target.value)}
+                    label="Tone"
+                  >
+                    {tones.map((toneOption) => (
+                      <MenuItem key={toneOption} value={toneOption}>
+                        {toneOption.charAt(0).toUpperCase() + toneOption.slice(1)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               )}
-            </Typography>
-            <Streamdown>
-              {result || response}
-            </Streamdown>
+            </Box>
+
+            {/* Input Box */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <TextField
+                fullWidth
+                multiline
+                maxRows={6}
+                value={currentInput}
+                onChange={(e) => setCurrentInput(e.target.value)}
+                placeholder={
+                  activeFeature === 'email'
+                    ? 'Paste your email here...'
+                    : 'Ask me anything...'
+                }
+                variant="outlined"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+              />
+              <IconButton
+                color="primary"
+                onClick={handleSend}
+                disabled={loading || isStreaming || !currentInput.trim()}
+                sx={{
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': { bgcolor: 'primary.dark' },
+                  '&.Mui-disabled': { bgcolor: 'action.disabledBackground' },
+                }}
+              >
+                <Send />
+              </IconButton>
+            </Box>
           </Box>
-        )}
-      </StyledPaper>
-    </Container>
+        </Box>
+      </Box>
+    </Box>
   );
 }
