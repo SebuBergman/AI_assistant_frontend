@@ -4,12 +4,14 @@ export const deepseekModels = [
   {
     id: "deepseek-chat",
     name: "DeepSeek Chat",
-    description: "Best for general conversations & creative tasks",
+    description: "Ideal for everyday conversations, brainstorming ideas, and general creative writing tasks.",
+    tool_calling: true,
   },
   {
     id: "deepseek-reasoner",
     name: "DeepSeek Reasoner",
-    description: "Optimized for logic, math & step-by-step analysis",
+    description: "Great for analytical work, solving math or logic problems, and detailed step-by-step reasoning.",
+    tool_calling: false,
   },
 ];
 
@@ -17,64 +19,76 @@ export const chatgptModels = [
   {
     id: "gpt-5",
     name: "GPT-5",
-    description: "Advanced reasoning and creativity with expert-level responses",
+    description: "Best for complex reasoning, detailed explanations, coding, and high-quality creative tasks.",
+    tool_calling: true,
   },
   {
     id: "gpt-5-mini",
     name: "GPT-5 Mini",
-    description: "Fast, efficient, and concise with solid reasoning",
+    description: "Perfect for fast, everyday tasks like drafting emails, summarizing content, or quick analysis.",
+    tool_calling: false,
   },
   {
     id: "gpt-5-nano",
     name: "GPT-5 Nano",
-    description: "Ultra-light, delivers brief 1–2 sentence answers",
+    description: "Designed for instant, concise answers to short questions or simple lookups.",
+    tool_calling: false,
   },
   {
     id: "gpt-4.1",
     name: "GPT-4.1",
-    description: "Balanced performance for most use cases",
+    description: "Balanced model for general-purpose use—great for writing, research, and casual coding.",
+    tool_calling: true,
   },
   {
     id: "gpt-4.1-mini",
     name: "GPT-4.1 Mini",
-    description: "Fast responses with slightly reduced accuracy",
+    description: "Fast and efficient for day-to-day assistance, summaries, and conversational tasks.",
+    tool_calling: false,
   },
   {
     id: "gpt-4.1-nano",
     name: "GPT-4.1 Nano",
-    description: "Ultra-lightweight for simple queries",
+    description: "Lightweight option for quick facts, simple queries, or short responses.",
+    tool_calling: false,
   },
   {
     id: "gpt-4o",
     name: "GPT-4o",
-    description: "Most advanced model for complex tasks",
+    description: "High-performance model built for advanced reasoning, coding, and complex creative projects.",
+    tool_calling: true,
   },
 ];
 
 export const claudeModels = [
   {
-    id: "claude-haiku-3-5",
+    id: "claude-3-5-haiku-latest",
     name: "Claude 3.5 Haiku",
-    description: "Quick and affordable; ideal for chat, summarization, and translation",
+    description: "Fast and cost-efficient for everyday chat, summarization, and translation tasks.",
+    tool_calling: true,
   },
   {
-    id: "claude-sonnet-3-5",
+    id: "claude-3-5-sonnet-latest",
     name: "Claude 3.5 Sonnet",
-    description: "Balanced power and speed; strong at reasoning, writing, and coding",
+    description: "Balanced for writing, reasoning, and coding—ideal for professional and creative work.",
+    tool_calling: true,
   },
   {
-    id: "claude-sonnet-3-7",
+    id: "claude-3-7-sonnet-latest",
     name: "Claude 3.7 Sonnet",
-    description: "Enhanced reasoning and adaptive performance for agentic tasks",
+    description: "Enhanced for adaptive, multi-step reasoning and autonomous or agent-style workflows.",
+    tool_calling: true,
   },
   {
     id: "claude-sonnet-4-5",
     name: "Claude Sonnet 4.5",
-    description: "Next-gen Sonnet tier optimized for enterprise-scale workloads",
+    description: "Enterprise-grade performance for large-scale, high-context workloads and automation.",
+    tool_calling: true,
   },
   {
     id: "claude-opus-4-1",
     name: "Claude Opus 4.1",
-    description: "Flagship model offering the deepest reasoning and longest context window",
+    description: "Flagship model for deep reasoning, complex analysis, and long-form creative or technical writing.",
+    tool_calling: true,
   },
 ];
