@@ -2,13 +2,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
-  Button,
   TextField,
   Select,
   MenuItem,
   Typography,
   IconButton,
-  Drawer,
   AppBar,
   Toolbar,
   Tab,
@@ -21,7 +19,6 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Add as AddIcon,
   Email,
   Psychology,
   AutoFixHigh,
@@ -32,12 +29,20 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 
-import { askAI, rewriteEmail } from '../components/API_requests';
+import { rewriteEmail } from '../lib/API_requests';
 import { chatgptModels, claudeModels, deepseekModels, tones } from '../components/data';
+import ChatSidebar from '../components/chatSidebar';
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: Date;
+}
 
 export default function AIAssistant() {
   const theme = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const [activeFeature, setActiveFeature] = useState('ai');
   const [prompt, setPrompt] = useState('');
   const [email, setEmail] = useState('');
@@ -52,78 +57,191 @@ export default function AIAssistant() {
   const [error, setError] = useState('');
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isNewChat, setIsNewChat] = useState(true);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [response, result, reasoning]);
 
-  const handleStream = async () => {
+  // Load messages when chat is selected
+  useEffect(() => {
+    if (currentChatId) {
+      loadChatMessages(currentChatId);
+    }
+  }, [currentChatId]);
+
+  const loadChatMessages = async (chatId: string) => {
+    try {
+      const response = await fetch(`/api/chats/${chatId}/messages`);
+      if (!response.ok) throw new Error('Failed to load messages');
+      
+      const data = await response.json();
+      setMessages(data.messages);
+      setIsNewChat(false);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
+
+  const handleNewChat = () => {
+    setCurrentChatId(null);
+    setMessages([]);
+    setIsNewChat(true);
+  };
+
+  const handleChatSelect = (chatId: string) => {
+    setCurrentChatId(chatId);
+  };
+
+  // Your AI response logic
+  const streamChat = async (question: string, model: string, temperature: number) => {
+  const response = await fetch("/api/chat/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, model, temperature }),
+  });
+
+  return response; // Keep streaming intact
+};
+
+  const getUserId = () => {
+    let userId = localStorage.getItem('userId');
+    if (!userId) {
+      userId = `user_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('userId', userId);
+    }
+    return userId;
+  };
+
+  const handleStreamMessage = async () => {
     if (!prompt || !selectedModel) return;
+    let userMessage = prompt.trim()
 
     setLoading(true);
     setIsStreaming(true);
     setResponse("");
     setReasoning("");
-    setResult("");
     setError("");
 
     try {
-      const res = await askAI(prompt, selectedModel, temperature);
+      let chatId = currentChatId;
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      // If it's a new chat, create it first
+      if (isNewChat) {
+        const createRes = await fetch('/api/chats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': getUserId(),
+          },
+          body: JSON.stringify({ message: userMessage }),
+        });
 
-      const reader = res.body?.getReader();
-      if (!reader) {
-        throw new Error("Failed to get response reader");
-      }
+      if (!createRes.ok) throw new Error("Failed to create chat");
 
-      const decoder = new TextDecoder();
-      let buffer = "";
+      const createData = await createRes.json();
+      chatId = createData.chat.id;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      setCurrentChatId(chatId);
+      setIsNewChat(false);
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+      // Add initial user message (local)
+      setMessages([
+        {
+          id: Date.now().toString(),
+          role: "user",
+          content: userMessage,
+          createdAt: new Date(),
+        },
+      ]);
+    } else {
+      // Existing chat → save user message
+      const userRes = await fetch(`/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "user", content: userMessage }),
+      });
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
+      if (!userRes.ok) throw new Error("Failed to save user message");
 
-              if (data.error) {
-                console.error("Error:", data.error);
-                setError(`Error: ${data.error}`);
-                break;
-              }
+      const userData = await userRes.json();
+      setMessages(prev => [...prev, userData.message]);
+    }
 
-              if (data.done) {
-                break;
-              }
+    // Start Streaming request
+    const streamRes = await streamChat(userMessage, selectedModel, temperature);
+    if (!streamRes.ok) {
+      throw new Error(`HTTP error! status: ${streamRes.status}`);
+    }
 
-              if (data.type === "reasoning") {
-                setReasoning((prev) => prev + data.content);
-              } else if (data.type === "content" || data.content) {
-                setResponse((prev) => prev + data.content);
-              }
-            } catch (e) {
-              console.error("Parse error:", e);
-            }
+    const reader = streamRes.body?.getReader();
+    if (!reader) {
+      throw new Error("Failed to get response reader");
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finalAIText = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+
+        try {
+          const json = JSON.parse(line.slice(6));
+
+          if (json.error) {
+            setError(json.error);
+            break;
           }
+          if (json.done) break;
+
+          if (json.type === "reasoning") {
+            setReasoning(prev => prev + json.content);
+          }
+
+          if (json.type === "content" || json.content) {
+            setResponse(prev => prev + json.content);
+            finalAIText += json.content;
+          }
+        } catch (e) {
+          console.error("Parse error:", e);
         }
       }
-    } catch (error) {
-      console.error("Streaming error:", error);
-      setError(`Streaming error: ${error || "Unknown error"}`);
-    } finally {
-      setIsStreaming(false);
-      setLoading(false);
-      setCurrentInput('');
     }
-  };
+
+    // Save AI Message (full combined text)
+    if (finalAIText.trim()) {
+      const aiRes = await fetch(`/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "assistant", content: finalAIText }),
+      });
+
+      if (!aiRes.ok) throw new Error("Failed to save AI response");
+
+      const aiData = await aiRes.json();
+      setMessages(prev => [...prev, aiData.message]);
+    }
+  } catch (err) {
+    console.error("Stream error:", err);
+    setError(`Streaming error: ${err}`);
+  } finally {
+    setIsStreaming(false);
+    setLoading(false);
+    setCurrentInput("");
+  }
+};
 
   const handleEmailSubmit = async () => {
     setLoading(true);
@@ -144,7 +262,7 @@ export default function AIAssistant() {
     if (activeFeature === 'email') {
       handleEmailSubmit();
     } else {
-      handleStream();
+      handleStreamMessage();
     }
   };
 
@@ -159,51 +277,14 @@ export default function AIAssistant() {
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+
       {/* Sidebar */}
-      <Drawer
-        variant="persistent"
-        open={sidebarOpen}
-        sx={{
-          width: sidebarOpen ? 260 : 0,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: 260,
-            boxSizing: 'border-box',
-            bgcolor: '#1a1a1a',
-            borderRight: 'none',
-          },
-        }}
-      >
-        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <Button
-            variant="outlined"
-            startIcon={<AddIcon />}
-            fullWidth
-            sx={{ 
-              mb: 2, 
-              justifyContent: 'flex-start',
-              color: 'white',
-              borderColor: 'rgba(255,255,255,0.2)',
-              '&:hover': {
-                borderColor: 'rgba(255,255,255,0.3)',
-                bgcolor: 'rgba(255,255,255,0.05)',
-              }
-            }}
-          >
-            New Chat
-          </Button>
-          
-          <Typography variant="caption" sx={{ px: 1, mb: 1, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
-            CHAT HISTORY
-          </Typography>
-          
-          <Box sx={{ flex: 1, overflow: 'auto' }}>
-            <Typography variant="body2" sx={{ px: 1, py: 2, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-              No saved chats yet
-            </Typography>
-          </Box>
-        </Box>
-      </Drawer>
+      <ChatSidebar
+        sidebarOpen={sidebarOpen}
+        currentChatId={currentChatId}
+        onChatSelect={handleChatSelect}
+        onNewChat={handleNewChat}
+      />
 
       {/* Main Content */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
