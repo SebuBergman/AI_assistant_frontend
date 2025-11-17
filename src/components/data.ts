@@ -62,15 +62,21 @@ export const chatgptModels = [
 
 export const claudeModels = [
   {
-    id: "claude-3-5-haiku-latest",
-    name: "Claude 3.5 Haiku",
-    description: "Fast and cost-efficient for everyday chat, summarization, and translation tasks.",
+    id: "claude-sonnet-4-5",
+    name: "Claude Sonnet 4.5",
+    description: "Enterprise-grade performance for large-scale, high-context workloads and automation.",
     tool_calling: true,
   },
   {
-    id: "claude-3-5-sonnet-latest",
-    name: "Claude 3.5 Sonnet",
-    description: "Balanced for writing, reasoning, and coding—ideal for professional and creative work.",
+    id: "claude-haiku-4-5",
+    name: "Claude Haiku 4.5",
+    description: "Balanced for everyday tasks—great for quick writing, summaries, light reasoning, and efficient coding help.",
+    tool_calling: true,
+  },
+  {
+    id: "claude-opus-4-1",
+    name: "Claude Opus 4.1",
+    description: "Flagship model for deep reasoning, complex analysis, and long-form creative or technical writing.",
     tool_calling: true,
   },
   {
@@ -79,16 +85,11 @@ export const claudeModels = [
     description: "Enhanced for adaptive, multi-step reasoning and autonomous or agent-style workflows.",
     tool_calling: true,
   },
+  
   {
-    id: "claude-sonnet-4-5",
-    name: "Claude Sonnet 4.5",
-    description: "Enterprise-grade performance for large-scale, high-context workloads and automation.",
-    tool_calling: true,
-  },
-  {
-    id: "claude-opus-4-1",
-    name: "Claude Opus 4.1",
-    description: "Flagship model for deep reasoning, complex analysis, and long-form creative or technical writing.",
+    id: "claude-3-5-haiku-latest",
+    name: "Claude 3.5 Haiku",
+    description: "Fast and cost-efficient for everyday chat, summarization, and translation tasks.",
     tool_calling: true,
   },
 ];
