@@ -1,5 +1,4 @@
 import axios from "axios";
-
 export const rewriteEmail = async (email: string, tone: string) => {
   try {
     const response = await axios.post("http://localhost:8000/email_assistant", {
@@ -30,7 +29,6 @@ export const askAI = async (
         temperature,
       }),
     });
-    console.log("Response received:", response);
     return response; // Return the Response object directly for streaming
   } catch (error) {
     console.error("Error:", error);
