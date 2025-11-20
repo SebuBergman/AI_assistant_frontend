@@ -1,6 +1,6 @@
 // app/api/chats/route.ts - Get all chats & Create new chat
 import { NextRequest, NextResponse } from 'next/server';
-import { ChatService } from '@lib/chatService';
+import { ChatService } from '@/lib/chatService';
 
 export async function GET(request: NextRequest) {
   try {

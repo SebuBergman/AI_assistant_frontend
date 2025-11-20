@@ -1,6 +1,6 @@
 // app/api/chats/[chatId]/messages/route.ts - Get/Add messages
 import { NextRequest, NextResponse } from 'next/server';
-import { ChatService } from '@lib/chatService';
+import { ChatService } from '@/lib/chatService';
 
 export async function GET(
   request: NextRequest,
