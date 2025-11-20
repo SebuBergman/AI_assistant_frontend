@@ -25,6 +25,8 @@ export class ChatService {
   static async createChat(userId: string, firstMessage: string): Promise<Chat> {
     const client = await pool.connect();
     const redis = getRedis();
+    console.log("createChat " + userId);
+    console.log("createChat " + firstMessage);
     
     try {
       await client.query('BEGIN');
@@ -267,4 +269,15 @@ export class ChatService {
       createdAt: new Date(row.created_at),
     };
   }
+
+  static async testConnection() {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    console.log('Database connected:', result.rows[0]);
+    return true;
+  } catch (error) {
+    console.error('Database connection error:', error);
+    return false;
+  }
+}
 }

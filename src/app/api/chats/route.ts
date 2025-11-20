@@ -22,7 +22,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const userId = request.headers.get('x-user-id') || 'anonymous';
-    const { message } = await request.json();
+    const body = await request.json();
+    const { message } = body;
+
+    // ADD THESE DEBUG LOGS:
+    console.log('POST /api/chats called');
+    console.log('userId:', userId);
+    console.log('message:', message);
+    console.log('Full body:', body);
     
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -31,7 +38,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    console.log('About to call ChatService.createChat');
     const chat = await ChatService.createChat(userId, message);
+    console.log('Chat created:', chat);
     
     return NextResponse.json({ chat }, { status: 201 });
   } catch (error) {
