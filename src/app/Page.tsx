@@ -110,7 +110,8 @@ export default function AIAssistant() {
   const getUserId = () => {
     let userId = localStorage.getItem('userId');
     if (!userId) {
-      userId = `user_${Math.random().toString(36).substr(2, 9)}`;
+      //userId = `user_${Math.random().toString(36).substr(2, 9)}`;
+      userId = "654321987"
       localStorage.setItem('userId', userId);
     }
     return userId;
@@ -128,6 +129,7 @@ export default function AIAssistant() {
 
     try {
       let chatId = currentChatId;
+      
 
       // If it's a new chat, create it first
       if (isNewChat) {
@@ -139,6 +141,15 @@ export default function AIAssistant() {
           },
           body: JSON.stringify({ message: userMessage }),
         });
+
+      console.log('Create response status:', createRes.status);
+      console.log('Create response ok:', createRes.ok);
+
+      if (!createRes.ok) {
+        const errorText = await createRes.text();
+        console.log('Error response:', errorText);
+        throw new Error(`Failed to create chat: ${errorText}`);
+      }
 
       if (!createRes.ok) throw new Error("Failed to create chat");
 
