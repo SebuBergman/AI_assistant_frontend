@@ -1,3 +1,4 @@
+'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -28,10 +29,9 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
-
-import { rewriteEmail } from '../lib/API_requests';
-import { chatgptModels, claudeModels, deepseekModels, tones } from '../components/data';
-import ChatSidebar from '../components/chatSidebar';
+import { rewriteEmail } from '@/lib/API_requests';
+import { chatgptModels, claudeModels, deepseekModels, tones } from '@/components/data';
+import ChatSidebar from '@/components/chatSidebar';
 
 interface Message {
   id: string;
@@ -142,6 +142,7 @@ export default function AIAssistant() {
           body: JSON.stringify({ message: userMessage }),
         });
 
+      console.log(createRes)
       console.log('Create response status:', createRes.status);
       console.log('Create response ok:', createRes.ok);
 
