@@ -45,10 +45,11 @@ export default function ChatSidebar({
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
 
+  /*
   // Fetch chats on mount
   useEffect(() => {
     fetchChats();
-  }, []);
+  }, []);*/
 
   const fetchChats = async () => {
     try {

@@ -62,6 +62,7 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isNewChat, setIsNewChat] = useState(true);
 
+  
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [response, result, reasoning]);

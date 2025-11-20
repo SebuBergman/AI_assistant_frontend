@@ -14,17 +14,27 @@ export const pool = new Pool({
 let redis: Redis | null = null;
 
 export const getRedis = () => {
-  if(!redis) {
-    redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
-      maxRetriesPerRequest: 3,
-      retryStrategy: (times) => {
-        if (times > 3) return null;
-        return Math.min(times * 50, 2000);
-      },
-    })
+  if (!redis) {
+    redis = new Redis({
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT),
+    username: "default",
+    password: process.env.REDIS_PASSWORD,
+    tls: {},  // required for Redis Cloud
+    maxRetriesPerRequest: 3,
+    retryStrategy: (times) => {
+      if (times > 3) return null;
+      return Math.min(times * 50, 2000);
+    },
+  });
+
+    // Optional: debug logs
+    redis.on("connect", () => console.log("CONNECTED"));
+    redis.on("ready", () => console.log("READY"));
+    redis.on("error", (e) => console.error("ERROR:", e));
   }
   return redis;
-}
+};
 
 // Cache keys
 export const CACHE_KEYS = {
