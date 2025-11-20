@@ -27,6 +27,7 @@
     "paths": {
       "@lib/*": ["src/lib/*"],
       "@api/*": ["src/app/api/*"],
+      "@/*": ["./src/*"],
     }
   },
   "include": ["src"]
