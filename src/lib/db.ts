@@ -16,22 +16,20 @@ let redis: Redis | null = null;
 export const getRedis = () => {
   if (!redis) {
     redis = new Redis({
-    host: process.env.REDIS_HOST,
-    port: Number(process.env.REDIS_PORT),
-    username: "default",
-    password: process.env.REDIS_PASSWORD,
-    tls: {},  // required for Redis Cloud
-    maxRetriesPerRequest: 3,
-    retryStrategy: (times) => {
-      if (times > 3) return null;
-      return Math.min(times * 50, 2000);
-    },
-  });
+      host: process.env.REDIS_HOST,
+      port: Number(process.env.REDIS_PORT),
+      username: "default", // Redis Cloud username
+      password: process.env.REDIS_PASSWORD,
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times) => {
+        if (times > 3) return null;
+        return Math.min(times * 50, 2000);
+      },
+    });
 
-    // Optional: debug logs
-    redis.on("connect", () => console.log("CONNECTED"));
-    redis.on("ready", () => console.log("READY"));
-    redis.on("error", (e) => console.error("ERROR:", e));
+    redis.on("connect", () => console.log("Redis CONNECTED"));
+    redis.on("ready", () => console.log("Redis READY"));
+    redis.on("error", (err) => console.error("Redis ERROR:", err));
   }
   return redis;
 };
