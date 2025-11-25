@@ -25,9 +25,7 @@ export class ChatService {
   static async createChat(userId: string, firstMessage: string): Promise<Chat> {
     const client = await pool.connect();
     const redis = getRedis();
-    console.log("createChat " + userId);
-    console.log("createChat " + firstMessage);
-    
+
     try {
       await client.query('BEGIN');
       
@@ -250,7 +248,7 @@ export class ChatService {
   }
 
   // Helper methods to map database rows to TypeScript objects
-  private static mapRowToChat(row: any): Chat {
+  private static mapRowToChat(row): Chat {
     return {
       id: row.id,
       userId: row.user_id,
@@ -260,7 +258,7 @@ export class ChatService {
     };
   }
 
-  private static mapRowToMessage(row: any): Message {
+  private static mapRowToMessage(row): Message {
     return {
       id: row.id,
       chatId: row.chat_id,
