@@ -19,15 +19,15 @@ yarn dev
 Create a .env file in the root of your project and add the following variables:
 
 # Supabase
-SUPABASE_URL=<supabase_url>
+SUPABASE_URL=<supabase_url><br>
 SUPABASE_KEY=<supabase_key>
 
 # Database
 DATABASE_URL=postgresql://user:<supabase_key>@host:5432/<dbname>
 
 # Redis
-REDIS_HOST=<redis_public_endpoint>
-REDIS_PORT=<redis_port>
+REDIS_HOST=<redis_public_endpoint><br>
+REDIS_PORT=<redis_port><br>
 REDIS_PASSWORD=<redis_security_password>
 
 # Python Backend
@@ -38,6 +38,8 @@ Steps<br>
 2. Copy the variables above into the file.
 3. Replace every <placeholder> with your real credentials.
 
+<br><br>
+# Deployment
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
