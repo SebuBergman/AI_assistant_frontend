@@ -1,12 +1,16 @@
+// app/api/chat/stream/route.ts - Get API response and stream it back to the UI
 export async function POST(req: Request) {
   try {
     const { question, model, temperature } = await req.json();
 
-    const backendRes = await fetch(process.env.PY_BACKEND_URL + "/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, model, temperature }),
-    });
+    const backendRes = await fetch(
+      process.env.PY_BACKEND_URL + "/api/generate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, model, temperature }),
+      }
+    );
 
     if (!backendRes.ok) {
       return new Response("Backend error", { status: backendRes.status });

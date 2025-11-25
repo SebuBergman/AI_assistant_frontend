@@ -4,18 +4,18 @@ import { ChatService } from '@/lib/chatService';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { chatId: string } }
+  { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
-    const { chatId } = params;
-    
+    const { chatId } = await params;
+
     const messages = await ChatService.getChatMessages(chatId);
-    
+
     return NextResponse.json({ messages });
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    console.error("Error fetching messages:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch messages' },
+      { error: "Failed to fetch messages" },
       { status: 500 }
     );
   }
@@ -23,26 +23,26 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { chatId: string } }
+  { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
-    const { chatId } = params;
+    const { chatId } = await params;
     const { role, content } = await request.json();
-    
-    if (!role || !content || !['user', 'assistant'].includes(role)) {
+
+    if (!role || !content || !["user", "assistant"].includes(role)) {
       return NextResponse.json(
-        { error: 'Invalid role or content' },
+        { error: "Invalid role or content" },
         { status: 400 }
       );
     }
-    
+
     const message = await ChatService.addMessage(chatId, role, content);
-    
+
     return NextResponse.json({ message }, { status: 201 });
   } catch (error) {
-    console.error('Error adding message:', error);
+    console.error("Error adding message:", error);
     return NextResponse.json(
-      { error: 'Failed to add message' },
+      { error: "Failed to add message" },
       { status: 500 }
     );
   }
