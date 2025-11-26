@@ -18,6 +18,7 @@ import {
   InputLabel,
   ListSubheader,
   Paper,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -41,6 +42,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github.css";
+import InfoIcon from "@mui/icons-material/Info";
 
 interface Message {
   id: string;
@@ -582,8 +584,8 @@ export default function AIAssistant() {
                             className,
                             children,
                             ...props
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          }: any) => {
+                          }: // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          any) => {
                             const inline = !className?.includes("language-");
                             return !inline ? (
                               <Paper
@@ -762,23 +764,157 @@ export default function AIAssistant() {
                       value={selectedModel}
                       onChange={(e) => setSelectedModel(e.target.value)}
                       label="AI Model"
+                      MenuProps={{
+                        PaperProps: {
+                          style: { maxHeight: 400 },
+                        },
+                      }}
                     >
                       <ListSubheader>DeepSeek Models</ListSubheader>
                       {deepseekModels.map((model) => (
                         <MenuItem key={model.id} value={model.id}>
-                          {model.name}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              width: "100%",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography>{model.name}</Typography>
+                            <Tooltip
+                              title={
+                                <Box>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: "bold" }}
+                                  >
+                                    {model.name}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {model.description}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ mt: 1, fontWeight: "bold" }}
+                                  >
+                                    Pricing:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Input: {model.pricing.input}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Output: {model.pricing.output}
+                                  </Typography>
+                                </Box>
+                              }
+                              placement="right"
+                              arrow
+                            >
+                              <InfoIcon
+                                fontSize="small"
+                                sx={{ ml: 1, color: "action.active" }}
+                              />
+                            </Tooltip>
+                          </Box>
                         </MenuItem>
                       ))}
                       <ListSubheader>ChatGPT Models</ListSubheader>
                       {chatgptModels.map((model) => (
                         <MenuItem key={model.id} value={model.id}>
-                          {model.name}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              width: "100%",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography>{model.name}</Typography>
+                            <Tooltip
+                              title={
+                                <Box>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: "bold" }}
+                                  >
+                                    {model.name}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {model.description}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ mt: 1, fontWeight: "bold" }}
+                                  >
+                                    Pricing:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Input: {model.pricing.input}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Output: {model.pricing.output}
+                                  </Typography>
+                                </Box>
+                              }
+                              placement="right"
+                              arrow
+                            >
+                              <InfoIcon
+                                fontSize="small"
+                                sx={{ ml: 1, color: "action.active" }}
+                              />
+                            </Tooltip>
+                          </Box>
                         </MenuItem>
                       ))}
                       <ListSubheader>Claude Models</ListSubheader>
                       {claudeModels.map((model) => (
                         <MenuItem key={model.id} value={model.id}>
-                          {model.name}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              width: "100%",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography>{model.name}</Typography>
+                            <Tooltip
+                              title={
+                                <Box>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: "bold" }}
+                                  >
+                                    {model.name}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {model.description}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ mt: 1, fontWeight: "bold" }}
+                                  >
+                                    Pricing:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Input: {model.pricing.input}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Output: {model.pricing.output}
+                                  </Typography>
+                                </Box>
+                              }
+                              placement="right"
+                              arrow
+                            >
+                              <InfoIcon
+                                fontSize="small"
+                                sx={{ ml: 1, color: "action.active" }}
+                              />
+                            </Tooltip>
+                          </Box>
                         </MenuItem>
                       ))}
                     </Select>
