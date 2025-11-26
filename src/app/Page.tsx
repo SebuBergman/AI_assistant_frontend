@@ -17,6 +17,7 @@ import {
   FormControl,
   InputLabel,
   ListSubheader,
+  Paper,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -35,6 +36,11 @@ import { useColorScheme, useTheme } from '@mui/material/styles';
 import { rewriteEmail } from '@/lib/API_requests';
 import { chatgptModels, claudeModels, deepseekModels, tones } from '@/components/data';
 import ChatSidebar from '@/components/chatSidebar';
+import { Streamdown } from "streamdown";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github.css";
 
 interface Message {
   id: string;
@@ -113,6 +119,9 @@ export default function AIAssistant() {
   const handleNewChat = () => {
     setCurrentChatId(null);
     setMessages([]);
+    setResponse("");
+    setResult("");
+    setReasoning("");
     setIsNewChat(true);
   };
 
@@ -335,6 +344,8 @@ export default function AIAssistant() {
           body: JSON.stringify({ role: "assistant", content: finalAIText }),
         });
 
+        setRefreshSidebar((prev) => prev + 1);
+
         if (!aiRes.ok) throw new Error("Failed to save AI response");
 
         const aiData = await aiRes.json();
@@ -533,12 +544,83 @@ export default function AIAssistant() {
                     >
                       {msg.role === "user" ? "You" : "Assistant"}
                     </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ whiteSpace: "pre-wrap", color: "text.primary" }}
-                    >
-                      {msg.content}
-                    </Typography>
+                    <Box sx={{ color: "text.primary" }}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                        components={{
+                          // Custom styling for various markdown elements
+                          p: ({ ...props }) => (
+                            <Typography
+                              variant="body1"
+                              sx={{ mb: 2 }}
+                              {...props}
+                            />
+                          ),
+                          h1: ({ ...props }) => (
+                            <Typography
+                              variant="h4"
+                              sx={{ mt: 3, mb: 2 }}
+                              {...props}
+                            />
+                          ),
+                          h2: ({ ...props }) => (
+                            <Typography
+                              variant="h5"
+                              sx={{ mt: 3, mb: 2 }}
+                              {...props}
+                            />
+                          ),
+                          h3: ({ ...props }) => (
+                            <Typography
+                              variant="h6"
+                              sx={{ mt: 2, mb: 1 }}
+                              {...props}
+                            />
+                          ),
+                          code: ({
+                            className,
+                            children,
+                            ...props
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          }: any) => {
+                            const inline = !className?.includes("language-");
+                            return !inline ? (
+                              <Paper
+                                sx={{
+                                  p: 1.5,
+                                  mb: 2,
+                                  overflow: "auto",
+                                  bgcolor: "background.default",
+                                }}
+                                elevation={0}
+                              >
+                                <code
+                                  style={{ fontFamily: "monospace" }}
+                                  className={className}
+                                  {...props}
+                                >
+                                  {children}
+                                </code>
+                              </Paper>
+                            ) : (
+                              <code
+                                style={{
+                                  backgroundColor: theme.palette.action.hover,
+                                  padding: "2px 4px",
+                                  borderRadius: 4,
+                                }}
+                                {...props}
+                              >
+                                {children}
+                              </code>
+                            );
+                          },
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </Box>
                   </Box>
                 ))}
               </Box>
@@ -651,12 +733,9 @@ export default function AIAssistant() {
                     </>
                   )}
                 </Box>
-                <Typography
-                  variant="body1"
-                  sx={{ whiteSpace: "pre-wrap", color: "text.primary" }}
-                >
-                  {result || response}
-                </Typography>
+                <Box sx={{ color: "text.primary" }}>
+                  <Streamdown>{result || response}</Streamdown>
+                </Box>
               </Box>
             )}
 
