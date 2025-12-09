@@ -1,5 +1,4 @@
 // components/ToneSelector.tsx
-import React from "react";
 import {
   FormControl,
   InputLabel,
@@ -9,31 +8,29 @@ import {
 
 interface ToneSelectorProps {
   tone: string;
-  setTone: (tone: string) => void;
+  onToneChange: (tone: string) => void;
   tones: string[];
 }
 
-const ToneSelector: React.FC<ToneSelectorProps> = ({
+export const ToneSelector = ({
   tone,
-  setTone,
+  onToneChange,
   tones,
-}) => {
+}: ToneSelectorProps) => {
   return (
     <FormControl size="small" sx={{ minWidth: 200 }}>
       <InputLabel>Tone</InputLabel>
       <Select
         value={tone}
-        onChange={(e) => setTone(e.target.value)}
+        onChange={(e) => onToneChange(e.target.value)}
         label="Tone"
       >
-        {tones.map((t) => (
-          <MenuItem key={t} value={t}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+        {tones.map((toneOption) => (
+          <MenuItem key={toneOption} value={toneOption}>
+            {toneOption.charAt(0).toUpperCase() + toneOption.slice(1)}
           </MenuItem>
         ))}
       </Select>
     </FormControl>
   );
 };
-
-export default ToneSelector;

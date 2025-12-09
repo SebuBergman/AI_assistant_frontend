@@ -38,6 +38,12 @@ import ReasoningBox from '@/components/chat/ReasoningBox';
 import ResponseBox from '@/components/chat/ResponseBox';
 import { DocumentsDialog } from '@/components/chat/DocumentDialog';
 import { fetchSavedDocuments } from './api/ragAPI';
+import { ModelSelector } from '@/components/controls/ModelSelector';
+import { TemperatureControl } from '@/components/controls/TemperatureControl';
+import { DocumentsButton } from '@/components/controls/DocumentsButton';
+import { ToneSelector } from '@/components/controls/ToneSelector';
+import { RagControls } from '@/components/controls/RagControls';
+import { MessageInput } from '@/components/controls/MessageInput';
 
 export default function AIAssistant() {
   const theme = useTheme();
@@ -179,9 +185,7 @@ export default function AIAssistant() {
 
   const handleStreamMessage = async () => {
   if (!prompt || !selectedModel) return;
-  console.log("handleStreamMessage called with prompt:", prompt);
   let userMessage = prompt.trim();
-  console.log("userMessage:", userMessage);
 
   setLoading(true);
   setIsStreaming(true);
@@ -575,324 +579,59 @@ export default function AIAssistant() {
             <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
               {activeFeature === "ai" ? (
                 <>
-                  <FormControl size="small" sx={{ minWidth: 250 }}>
-                    <InputLabel>AI Model</InputLabel>
-                    <Select
-                      value={selectedModel}
-                      onChange={(e) => setSelectedModel(e.target.value)}
-                      label="AI Model"
-                      MenuProps={{
-                        PaperProps: {
-                          style: { maxHeight: 400 },
-                        },
-                      }}
-                    >
-                      <ListSubheader>DeepSeek Models</ListSubheader>
-                      {deepseekModels.map((model) => (
-                        <MenuItem key={model.id} value={model.id}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              width: "100%",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <Typography>{model.name}</Typography>
-                            <Tooltip
-                              title={
-                                <Box>
-                                  <Typography
-                                    variant="subtitle2"
-                                    sx={{ fontWeight: "bold" }}
-                                  >
-                                    {model.name}
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    {model.description}
-                                  </Typography>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ mt: 1, fontWeight: "bold" }}
-                                  >
-                                    Pricing:
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    Input: {model.pricing.input}
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    Output: {model.pricing.output}
-                                  </Typography>
-                                </Box>
-                              }
-                              placement="right"
-                              arrow
-                            >
-                              <InfoIcon
-                                fontSize="small"
-                                sx={{ ml: 1, color: "action.active" }}
-                              />
-                            </Tooltip>
-                          </Box>
-                        </MenuItem>
-                      ))}
-                      <ListSubheader>ChatGPT Models</ListSubheader>
-                      {chatgptModels.map((model) => (
-                        <MenuItem key={model.id} value={model.id}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              width: "100%",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <Typography>{model.name}</Typography>
-                            <Tooltip
-                              title={
-                                <Box>
-                                  <Typography
-                                    variant="subtitle2"
-                                    sx={{ fontWeight: "bold" }}
-                                  >
-                                    {model.name}
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    {model.description}
-                                  </Typography>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ mt: 1, fontWeight: "bold" }}
-                                  >
-                                    Pricing:
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    Input: {model.pricing.input}
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    Output: {model.pricing.output}
-                                  </Typography>
-                                </Box>
-                              }
-                              placement="right"
-                              arrow
-                            >
-                              <InfoIcon
-                                fontSize="small"
-                                sx={{ ml: 1, color: "action.active" }}
-                              />
-                            </Tooltip>
-                          </Box>
-                        </MenuItem>
-                      ))}
-                      <ListSubheader>Claude Models</ListSubheader>
-                      {claudeModels.map((model) => (
-                        <MenuItem key={model.id} value={model.id}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              width: "100%",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <Typography>{model.name}</Typography>
-                            <Tooltip
-                              title={
-                                <Box>
-                                  <Typography
-                                    variant="subtitle2"
-                                    sx={{ fontWeight: "bold" }}
-                                  >
-                                    {model.name}
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    {model.description}
-                                  </Typography>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ mt: 1, fontWeight: "bold" }}
-                                  >
-                                    Pricing:
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    Input: {model.pricing.input}
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    Output: {model.pricing.output}
-                                  </Typography>
-                                </Box>
-                              }
-                              placement="right"
-                              arrow
-                            >
-                              <InfoIcon
-                                fontSize="small"
-                                sx={{ ml: 1, color: "action.active" }}
-                              />
-                            </Tooltip>
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <TextField
-                    size="small"
-                    label="Temperature"
-                    type="number"
-                    value={temperature}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      if (val >= 0 && val <= 2) setTemperature(val);
-                    }}
-                    inputProps={{ min: 0, max: 2, step: 0.1 }}
-                    sx={{ width: 120 }}
+                  <ModelSelector
+                    selectedModel={selectedModel}
+                    onModelChange={setSelectedModel}
+                    deepseekModels={deepseekModels}
+                    chatgptModels={chatgptModels}
+                    claudeModels={claudeModels}
                   />
-
-                  {/* Documents Button */}
-                  <Tooltip title="Manage uploaded documents">
-                    <IconButton
-                      onClick={() => setDocumentsDialogOpen(true)}
-                      color={uploadedFiles.length > 0 ? "primary" : "default"}
-                      sx={{
-                        border: 1,
-                        borderColor: uploadedFiles.length > 0 ? 'primary.main' : 'divider',
-                      }}
-                    >
-                      <FolderIcon />
-                      {uploadedFiles.length > 0 && (
-                        <Chip
-                          label={uploadedFiles.length}
-                          size="small"
-                          color="primary"
-                          sx={{
-                            position: 'absolute',
-                            top: -8,
-                            right: -8,
-                            height: 20,
-                            minWidth: 20,
-                          }}
-                        />
-                      )}
-                    </IconButton>
-                  </Tooltip>
+                  <TemperatureControl
+                    temperature={temperature}
+                    onTemperatureChange={setTemperature}
+                  />
+                  <DocumentsButton
+                    uploadedFilesCount={uploadedFiles.length}
+                    onOpenDialog={() => setDocumentsDialogOpen(true)}
+                  />
                 </>
               ) : (
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel>Tone</InputLabel>
-                  <Select
-                    value={tone}
-                    onChange={(e) => setTone(e.target.value)}
-                    label="Tone"
-                  >
-                    {tones.map((toneOption) => (
-                      <MenuItem key={toneOption} value={toneOption}>
-                        {toneOption.charAt(0).toUpperCase() +
-                          toneOption.slice(1)}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <ToneSelector
+                  tone={tone}
+                  onToneChange={setTone}
+                  tones={tones}
+                />
               )}
             </Box>
 
             {/* RAG Options - Show when RAG is enabled */}
             {activeFeature === "ai" && isRagEnabled && (
-              <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
-                {/* Document Selector */}
-                <FormControl size="small" sx={{ minWidth: 250 }}>
-                  <InputLabel>Select Document</InputLabel>
-                  <Select
-                    value={selectedDocument}
-                    onChange={(e) => setSelectedDocument(e.target.value)}
-                    label="Select Document"
-                    disabled={uploadedFiles.length === 0}
-                  >
-                    <MenuItem value="">
-                      <em>All Documents</em>
-                    </MenuItem>
-                    {uploadedFiles.map((doc) => (
-                      <MenuItem key={doc.file_name} value={doc.file_name}>
-                        {doc.file_name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                {/* Keyword Search */}
-                <TextField
-                  size="small"
-                  label="Keyword (optional)"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  placeholder="Add keyword for hybrid search"
-                  sx={{ minWidth: 200 }}
-                />
-
-                {/* Cache Toggle */}
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={useCached}
-                      onChange={(e) => setUseCached(e.target.checked)}
-                      size="small"
-                    />
-                  }
-                  label={
-                    <Typography variant="body2">Use Cache</Typography>
-                  }
-                />
-
-                {uploadedFiles.length === 0 && (
-                  <Typography 
-                    variant="caption" 
-                    color="warning.main" 
-                    sx={{ display: 'flex', alignItems: 'center', ml: 1 }}
-                  >
-                    No documents uploaded. Click the folder icon to upload PDFs.
-                  </Typography>
-                )}
-              </Box>
+              <RagControls
+                selectedDocument={selectedDocument}
+                onDocumentChange={setSelectedDocument}
+                keyword={keyword}
+                onKeywordChange={setKeyword}
+                useCached={useCached}
+                onCacheChange={setUseCached}
+                uploadedFiles={uploadedFiles}
+              />
             )}
 
             {/* Input Box */}
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <TextField
-                fullWidth
-                multiline
-                maxRows={6}
-                value={currentInput}
-                onChange={(e) => setCurrentInput(e.target.value)}
-                placeholder={
-                  activeFeature === "email"
-                    ? "Paste your email here..."
-                    : isRagEnabled && uploadedFiles.length > 0
-                    ? "Ask a question about your documents..."
-                    : "Ask me anything..."
-                }
-                variant="outlined"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-              />
-              <IconButton
-                color="primary"
-                onClick={handleSend}
-                disabled={loading || isStreaming || !currentInput.trim()}
-                sx={{
-                  bgcolor: "primary.main",
-                  color: "white",
-                  "&:hover": { bgcolor: "primary.dark" },
-                  "&.Mui-disabled": { bgcolor: "action.disabledBackground" },
-                }}
-              >
-                <Send />
-              </IconButton>
-            </Box>
+            <MessageInput
+              currentInput={currentInput}
+              onInputChange={setCurrentInput}
+              onSend={handleSend}
+              loading={loading}
+              isStreaming={isStreaming}
+              placeholder={
+                activeFeature === "email"
+                  ? "Paste your email here..."
+                  : isRagEnabled && uploadedFiles.length > 0
+                  ? "Ask a question about your documents..."
+                  : "Ask me anything..."
+              }
+            />
           </Box>
         </Box>
         {/* Documents Dialog */}
