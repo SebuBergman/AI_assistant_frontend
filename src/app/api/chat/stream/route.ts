@@ -11,10 +11,6 @@ export async function POST(req: Request) {
       cached = false,
       alpha = 0.7
     } = await req.json();
-    console.log("Received request with ragEnabled:", ragEnabled, "file_name:", file_name);
-    console.log("keyword:", keyword, "cached:", cached, "alpha:", alpha);
-    console.log("Question:", question);
-    console.log("Model:", model, "Temperature:", temperature);
 
     const backendRes = await fetch(
       process.env.PY_BACKEND_URL + "/api/generate",
