@@ -6,10 +6,6 @@ export async function POST(req: NextRequest) {
   try {
     const { email, tone } = await req.json();
 
-    console.log('[POST /api/email/rewrite] Received request');
-    console.log('Email length:', email?.length);
-    console.log('Tone:', tone);
-
     // Validate input
     if (!email || typeof email !== 'string') {
       return NextResponse.json(
@@ -43,8 +39,6 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await backendRes.json();
-
-    console.log('[POST /api/email/rewrite] Success');
 
     // Stream the backend response directly to the client
     return NextResponse.json({

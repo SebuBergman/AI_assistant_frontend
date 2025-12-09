@@ -5,15 +5,41 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 First, run the development server:
 
 ```bash
+npm install
+# or
+yarn install
+# then
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
+🔧 Environment Variables
+
+Create a .env file in the root of your project and add the following variables:
+
+# Supabase
+SUPABASE_URL=<supabase_url><br>
+SUPABASE_KEY=<supabase_key>
+
+# Database
+DATABASE_URL=postgresql://user:<supabase_key>@host:5432/<dbname>
+
+# Redis
+REDIS_HOST=<redis_public_endpoint><br>
+REDIS_PORT=<redis_port><br>
+REDIS_PASSWORD=<redis_security_password>
+
+# Python Backend
+PY_BACKEND_URL=<python_backend_url>
+
+Steps<br>
+1. Create a new file named .env in the project root.
+2. Copy the variables above into the file.
+3. Replace every <placeholder> with your real credentials.
+
+<br><br>
+# Deployment
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.

@@ -17,6 +17,8 @@ import {
   FormControl,
   InputLabel,
   ListSubheader,
+  Paper,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -27,12 +29,20 @@ import {
   Send,
   SettingsSuggest,
   Close as CloseIcon,
-  FlashOn
+  FlashOn,
+  Brightness7,
+  Brightness4
 } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
+import { useColorScheme, useTheme } from '@mui/material/styles';
 import { rewriteEmail } from '@/lib/API_requests';
 import { chatgptModels, claudeModels, deepseekModels, tones } from '@/components/data';
 import ChatSidebar from '@/components/chatSidebar';
+import { Streamdown } from "streamdown";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github.css";
+import InfoIcon from "@mui/icons-material/Info";
 
 interface Message {
   id: string;
@@ -64,6 +74,12 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isNewChat, setIsNewChat] = useState(true);
 
+  // Sidebar refresh prop
+  const [refreshSidebar, setRefreshSidebar] = useState(0);
+
+  // For Dark mode
+  const { mode, setMode } = useColorScheme();
+  
   // For temporary chat
   const [isTemporaryChat, setIsTemporaryChat] = useState(false);
 
@@ -78,22 +94,36 @@ export default function AIAssistant() {
     }
   }, [currentChatId]);
 
+  // For changing from light to dark and vice versa
+  if (!mode) {
+    return null;
+  }
+
   const loadChatMessages = async (chatId: string) => {
     try {
       const response = await fetch(`/api/chats/${chatId}/messages`);
-      if (!response.ok) throw new Error('Failed to load messages');
-      
+      if (!response.ok) throw new Error("Failed to load messages");
+
       const data = await response.json();
       setMessages(data.messages);
       setIsNewChat(false);
+
+      // Add these lines to clear the response area
+      setResponse("");
+      setResult("");
+      setReasoning("");
+      setError("");
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error("Error loading messages:", error);
     }
   };
 
   const handleNewChat = () => {
     setCurrentChatId(null);
     setMessages([]);
+    setResponse("");
+    setResult("");
+    setReasoning("");
     setIsNewChat(true);
   };
 
@@ -124,6 +154,7 @@ export default function AIAssistant() {
 
   const handleStreamMessage = async () => {
     if (!prompt || !selectedModel) return;
+    // eslint-disable-next-line prefer-const
     let userMessage = prompt.trim()
 
     setLoading(true);
@@ -221,13 +252,8 @@ export default function AIAssistant() {
           body: JSON.stringify({ message: userMessage }),
         });
 
-        console.log(createRes)
-        console.log('Create response status:', createRes.status);
-        console.log('Create response ok:', createRes.ok);
-
         if (!createRes.ok) {
           const errorText = await createRes.text();
-          console.log('Error response:', errorText);
           throw new Error(`Failed to create chat: ${errorText}`);
         }
 
@@ -260,6 +286,7 @@ export default function AIAssistant() {
 
         const userData = await userRes.json();
         setMessages(prev => [...prev, userData.message]);
+        setRefreshSidebar((prev) => prev + 1);
       }
 
       // Start Streaming request
@@ -319,10 +346,15 @@ export default function AIAssistant() {
           body: JSON.stringify({ role: "assistant", content: finalAIText }),
         });
 
+        setRefreshSidebar((prev) => prev + 1);
+
         if (!aiRes.ok) throw new Error("Failed to save AI response");
 
         const aiData = await aiRes.json();
-        setMessages(prev => [...prev, aiData.message]);
+        // Only save AI message to messages if chat is loaded from sidebar (persistent chat)
+        if (currentChatId && !isTemporaryChat) {
+          setMessages((prev) => [...prev, aiData.message]);
+        }
       }
     } catch (err) {
       console.error("Stream error:", err);
@@ -370,20 +402,27 @@ export default function AIAssistant() {
   };
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       {/* Sidebar */}
       <ChatSidebar
         sidebarOpen={sidebarOpen}
         currentChatId={currentChatId}
         onChatSelect={handleChatSelect}
         onNewChat={handleNewChat}
+        refreshTrigger={refreshSidebar}
       />
 
       {/* Main Content */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
         {/* Top AppBar with Tabs */}
-        <AppBar position="static" color="default" elevation={1} sx={{ bgcolor: 'white' }}>
+        <AppBar position="static" color="default" elevation={1}>
           <Toolbar>
             <IconButton
               edge="start"
@@ -392,8 +431,8 @@ export default function AIAssistant() {
             >
               <MenuIcon />
             </IconButton>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 3 }}>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mr: 3 }}>
               <SettingsSuggest color="primary" />
               <Typography variant="h6" fontWeight="bold">
                 AI Assistant
@@ -401,16 +440,20 @@ export default function AIAssistant() {
             </Box>
 
             <Tabs
-              value={activeFeature === 'email' ? 0 : 1}
+              value={activeFeature === "email" ? 0 : 1}
               onChange={(_, newValue) =>
-                setActiveFeature(newValue === 0 ? 'email' : 'ai')
+                setActiveFeature(newValue === 0 ? "email" : "ai")
               }
               sx={{ flex: 1 }}
             >
-              <Tab icon={<Email />} iconPosition="start" label="Email Assistant" />
+              <Tab
+                icon={<Email />}
+                iconPosition="start"
+                label="Email Assistant"
+              />
               <Tab icon={<Psychology />} iconPosition="start" label="AI Chat" />
             </Tabs>
-            {activeFeature === 'ai' && (
+            {activeFeature === "ai" && (
               <IconButton
                 onClick={() => {
                   setIsTemporaryChat(!isTemporaryChat);
@@ -423,17 +466,29 @@ export default function AIAssistant() {
                   }
                 }}
                 sx={{
-                  bgcolor: isTemporaryChat ? 'warning.main' : 'action.hover',
-                  color: isTemporaryChat ? 'white' : 'text.primary',
-                  '&:hover': {
-                    bgcolor: isTemporaryChat ? 'warning.dark' : 'action.selected',
+                  bgcolor: isTemporaryChat ? "warning.main" : "action.hover",
+                  color: isTemporaryChat ? "white" : "text.primary",
+                  "&:hover": {
+                    bgcolor: isTemporaryChat
+                      ? "warning.dark"
+                      : "action.selected",
                   },
-                  transition: 'all 0.2s',
+                  transition: "all 0.2s",
                 }}
               >
                 <FlashOn />
               </IconButton>
             )}
+            <IconButton
+              onClick={() => setMode(mode === "dark" ? "light" : "dark")}
+              sx={{
+                ml: 2,
+                bgcolor: "action.hover",
+                "&:hover": { bgcolor: "action.selected" },
+              }}
+            >
+              {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
+            </IconButton>
           </Toolbar>
         </AppBar>
 
@@ -441,18 +496,18 @@ export default function AIAssistant() {
         <Box
           sx={{
             flex: 1,
-            overflow: 'auto',
-            bgcolor: 'background.default',
+            overflow: "auto",
+            bgcolor: "background.default",
           }}
         >
-          <Box sx={{ maxWidth: 1000, width: '100%', mx: 'auto', p: 3 }}>
+          <Box sx={{ maxWidth: 1000, width: "100%", mx: "auto", p: 3 }}>
             {error && (
-              <Alert 
-                severity="error" 
-                sx={{ mb: 3 }} 
-                onClose={() => setError('')}
+              <Alert
+                severity="error"
+                sx={{ mb: 3 }}
+                onClose={() => setError("")}
                 action={
-                  <IconButton size="small" onClick={() => setError('')}>
+                  <IconButton size="small" onClick={() => setError("")}>
                     <CloseIcon fontSize="small" />
                   </IconButton>
                 }
@@ -461,40 +516,156 @@ export default function AIAssistant() {
               </Alert>
             )}
             {/* Temporary Chat Indicator */}
-            {isTemporaryChat && activeFeature === 'ai' && (
-              <Alert 
-                severity="warning" 
-                icon={<FlashOn />}
-                sx={{ mb: 3 }}
-              >
-                <strong>Temporary Chat Mode:</strong> Messages won't be saved to history
+            {isTemporaryChat && activeFeature === "ai" && (
+              <Alert severity="warning" icon={<FlashOn />} sx={{ mb: 3 }}>
+                <strong>Temporary Chat Mode:</strong> Messages won&apos;t be
+                saved to history
               </Alert>
             )}
 
+            {/* Chat Messages History — show ONLY when loading a saved chat */}
+            {currentChatId && !isTemporaryChat && messages.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                {messages.map((msg) => (
+                  <Box
+                    key={msg.id}
+                    sx={{
+                      mb: 2,
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor:
+                        msg.role === "user"
+                          ? "action.hover"
+                          : "background.paper",
+                      border: `1px solid ${theme.palette.divider}`,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{ mb: 1, display: "block", color: "text.primary" }}
+                    >
+                      {msg.role === "user" ? "You" : "Assistant"}
+                    </Typography>
+                    <Box sx={{ color: "text.primary" }}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                        components={{
+                          // Custom styling for various markdown elements
+                          p: ({ ...props }) => (
+                            <Typography
+                              variant="body1"
+                              sx={{ mb: 2 }}
+                              {...props}
+                            />
+                          ),
+                          h1: ({ ...props }) => (
+                            <Typography
+                              variant="h4"
+                              sx={{ mt: 3, mb: 2 }}
+                              {...props}
+                            />
+                          ),
+                          h2: ({ ...props }) => (
+                            <Typography
+                              variant="h5"
+                              sx={{ mt: 3, mb: 2 }}
+                              {...props}
+                            />
+                          ),
+                          h3: ({ ...props }) => (
+                            <Typography
+                              variant="h6"
+                              sx={{ mt: 2, mb: 1 }}
+                              {...props}
+                            />
+                          ),
+                          code: ({
+                            className,
+                            children,
+                            ...props
+                          }: // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          any) => {
+                            const inline = !className?.includes("language-");
+                            return !inline ? (
+                              <Paper
+                                sx={{
+                                  p: 1.5,
+                                  mb: 2,
+                                  overflow: "auto",
+                                  bgcolor: "background.default",
+                                }}
+                                elevation={0}
+                              >
+                                <code
+                                  style={{ fontFamily: "monospace" }}
+                                  className={className}
+                                  {...props}
+                                >
+                                  {children}
+                                </code>
+                              </Paper>
+                            ) : (
+                              <code
+                                style={{
+                                  backgroundColor: theme.palette.action.hover,
+                                  padding: "2px 4px",
+                                  borderRadius: 4,
+                                }}
+                                {...props}
+                              >
+                                {children}
+                              </code>
+                            );
+                          },
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            )}
+
             {/* Welcome Message */}
-            {!response && !result && (
+            {!response && !result && messages.length === 0 && (
               <Box textAlign="center" py={12}>
-                <Box display="flex" alignItems="center" justifyContent="center" gap={1} mb={2}>
-                  {activeFeature === 'email' ? (
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  gap={1}
+                  mb={2}
+                >
+                  {activeFeature === "email" ? (
                     <>
                       <AutoFixHigh sx={{ fontSize: 40 }} color="primary" />
-                      <Typography variant="h3" fontWeight="bold">
+                      <Typography
+                        variant="h3"
+                        fontWeight="bold"
+                        sx={{ color: "text.primary" }}
+                      >
                         Email Rewriter
                       </Typography>
                     </>
                   ) : (
                     <>
                       <Chat sx={{ fontSize: 40 }} color="primary" />
-                      <Typography variant="h3" fontWeight="bold">
+                      <Typography
+                        variant="h3"
+                        fontWeight="bold"
+                        sx={{ color: "text.primary" }}
+                      >
                         AI Chat
                       </Typography>
                     </>
                   )}
                 </Box>
-                <Typography variant="h6" color="text.secondary">
-                  {activeFeature === 'email'
-                    ? 'Paste your email and select a tone to get an improved version'
-                    : 'Ask questions to different AI models with adjustable creativity'}
+                <Typography variant="h6" sx={{ color: "text.primary" }}>
+                  {activeFeature === "email"
+                    ? "Paste your email and select a tone to get an improved version"
+                    : "Ask questions to different AI models with adjustable creativity"}
                 </Typography>
               </Box>
             )}
@@ -508,7 +679,7 @@ export default function AIAssistant() {
                 p={3}
                 border={`2px dashed ${theme.palette.warning.main}`}
                 borderRadius={2}
-                bgcolor={theme.palette.warning.light + '20'}
+                bgcolor={theme.palette.warning.light + "20"}
               >
                 <Box display="flex" alignItems="center" gap={1} mb={1}>
                   <Psychology color="warning" />
@@ -516,13 +687,13 @@ export default function AIAssistant() {
                     Reasoning Process
                   </Typography>
                 </Box>
-                <Typography 
-                  variant="body2" 
+                <Typography
+                  variant="body2"
                   component="pre"
-                  sx={{ 
-                    fontFamily: 'monospace', 
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
+                  sx={{
+                    fontFamily: "monospace",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
                   }}
                 >
                   {reasoning}
@@ -540,28 +711,36 @@ export default function AIAssistant() {
                 boxShadow={1}
               >
                 <Box display="flex" alignItems="center" gap={1} mb={2}>
-                  {activeFeature === 'email' ? (
+                  {activeFeature === "email" ? (
                     <>
                       <AutoFixHigh color="primary" />
-                      <Typography variant="subtitle1" fontWeight="medium">
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight="medium"
+                        sx={{ color: "text.primary" }}
+                      >
                         Rewritten Email
                       </Typography>
                     </>
                   ) : (
                     <>
                       <Chat color="primary" />
-                      <Typography variant="subtitle1" fontWeight="medium">
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight="medium"
+                        sx={{ color: "text.primary" }}
+                      >
                         AI Response
                       </Typography>
                     </>
                   )}
                 </Box>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                  {result || response}
-                </Typography>
+                <Box sx={{ color: "text.primary" }}>
+                  <Streamdown>{result || response}</Streamdown>
+                </Box>
               </Box>
             )}
-            
+
             <div ref={chatEndRef} />
           </Box>
         </Box>
@@ -570,14 +749,14 @@ export default function AIAssistant() {
         <Box
           sx={{
             borderTop: `1px solid ${theme.palette.divider}`,
-            bgcolor: 'background.paper',
+            bgcolor: "background.paper",
             p: 2,
           }}
         >
-          <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
+          <Box sx={{ maxWidth: 1000, mx: "auto" }}>
             {/* Controls */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-              {activeFeature === 'ai' ? (
+            <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
+              {activeFeature === "ai" ? (
                 <>
                   <FormControl size="small" sx={{ minWidth: 250 }}>
                     <InputLabel>AI Model</InputLabel>
@@ -585,23 +764,157 @@ export default function AIAssistant() {
                       value={selectedModel}
                       onChange={(e) => setSelectedModel(e.target.value)}
                       label="AI Model"
+                      MenuProps={{
+                        PaperProps: {
+                          style: { maxHeight: 400 },
+                        },
+                      }}
                     >
                       <ListSubheader>DeepSeek Models</ListSubheader>
                       {deepseekModels.map((model) => (
                         <MenuItem key={model.id} value={model.id}>
-                          {model.name}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              width: "100%",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography>{model.name}</Typography>
+                            <Tooltip
+                              title={
+                                <Box>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: "bold" }}
+                                  >
+                                    {model.name}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {model.description}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ mt: 1, fontWeight: "bold" }}
+                                  >
+                                    Pricing:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Input: {model.pricing.input}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Output: {model.pricing.output}
+                                  </Typography>
+                                </Box>
+                              }
+                              placement="right"
+                              arrow
+                            >
+                              <InfoIcon
+                                fontSize="small"
+                                sx={{ ml: 1, color: "action.active" }}
+                              />
+                            </Tooltip>
+                          </Box>
                         </MenuItem>
                       ))}
                       <ListSubheader>ChatGPT Models</ListSubheader>
                       {chatgptModels.map((model) => (
                         <MenuItem key={model.id} value={model.id}>
-                          {model.name}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              width: "100%",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography>{model.name}</Typography>
+                            <Tooltip
+                              title={
+                                <Box>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: "bold" }}
+                                  >
+                                    {model.name}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {model.description}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ mt: 1, fontWeight: "bold" }}
+                                  >
+                                    Pricing:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Input: {model.pricing.input}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Output: {model.pricing.output}
+                                  </Typography>
+                                </Box>
+                              }
+                              placement="right"
+                              arrow
+                            >
+                              <InfoIcon
+                                fontSize="small"
+                                sx={{ ml: 1, color: "action.active" }}
+                              />
+                            </Tooltip>
+                          </Box>
                         </MenuItem>
                       ))}
                       <ListSubheader>Claude Models</ListSubheader>
                       {claudeModels.map((model) => (
                         <MenuItem key={model.id} value={model.id}>
-                          {model.name}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              width: "100%",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Typography>{model.name}</Typography>
+                            <Tooltip
+                              title={
+                                <Box>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: "bold" }}
+                                  >
+                                    {model.name}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {model.description}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ mt: 1, fontWeight: "bold" }}
+                                  >
+                                    Pricing:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Input: {model.pricing.input}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Output: {model.pricing.output}
+                                  </Typography>
+                                </Box>
+                              }
+                              placement="right"
+                              arrow
+                            >
+                              <InfoIcon
+                                fontSize="small"
+                                sx={{ ml: 1, color: "action.active" }}
+                              />
+                            </Tooltip>
+                          </Box>
                         </MenuItem>
                       ))}
                     </Select>
@@ -630,7 +943,8 @@ export default function AIAssistant() {
                   >
                     {tones.map((toneOption) => (
                       <MenuItem key={toneOption} value={toneOption}>
-                        {toneOption.charAt(0).toUpperCase() + toneOption.slice(1)}
+                        {toneOption.charAt(0).toUpperCase() +
+                          toneOption.slice(1)}
                       </MenuItem>
                     ))}
                   </Select>
@@ -639,7 +953,7 @@ export default function AIAssistant() {
             </Box>
 
             {/* Input Box */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
               <TextField
                 fullWidth
                 multiline
@@ -647,13 +961,13 @@ export default function AIAssistant() {
                 value={currentInput}
                 onChange={(e) => setCurrentInput(e.target.value)}
                 placeholder={
-                  activeFeature === 'email'
-                    ? 'Paste your email here...'
-                    : 'Ask me anything...'
+                  activeFeature === "email"
+                    ? "Paste your email here..."
+                    : "Ask me anything..."
                 }
                 variant="outlined"
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSend();
                   }
@@ -664,10 +978,10 @@ export default function AIAssistant() {
                 onClick={handleSend}
                 disabled={loading || isStreaming || !currentInput.trim()}
                 sx={{
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' },
-                  '&.Mui-disabled': { bgcolor: 'action.disabledBackground' },
+                  bgcolor: "primary.main",
+                  color: "white",
+                  "&:hover": { bgcolor: "primary.dark" },
+                  "&.Mui-disabled": { bgcolor: "action.disabledBackground" },
                 }}
               >
                 <Send />
