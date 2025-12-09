@@ -8,53 +8,42 @@ import {
   MenuItem,
   Typography,
   IconButton,
-  AppBar,
-  Toolbar,
-  Tab,
-  Tabs,
   LinearProgress,
   Alert,
   FormControl,
   InputLabel,
   ListSubheader,
-  Paper,
   Tooltip,
+  FormControlLabel,
+  Switch,
+  Chip,
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
-  Email,
-  Psychology,
-  AutoFixHigh,
-  Chat,
   Send,
-  SettingsSuggest,
   Close as CloseIcon,
   FlashOn,
-  Brightness7,
-  Brightness4
+  Folder as FolderIcon,
 } from '@mui/icons-material';
 import { useColorScheme, useTheme } from '@mui/material/styles';
 import { rewriteEmail } from '@/lib/API_requests';
 import { chatgptModels, claudeModels, deepseekModels, tones } from '@/components/data';
 import ChatSidebar from '@/components/chatSidebar';
-import { Streamdown } from "streamdown";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github.css";
 import InfoIcon from "@mui/icons-material/Info";
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  createdAt: Date;
-}
+import { Message, SavedDocument } from "@/app/types";
+import TopBar from '@/components/shared/TopBar';
+import { ChatMessages } from '@/components/chat/ChatMessages';
+import WelcomeMessage from '@/components/shared/WelcomeMessage';
+import ReasoningBox from '@/components/chat/ReasoningBox';
+import ResponseBox from '@/components/chat/ResponseBox';
+import { DocumentsDialog } from '@/components/chat/DocumentDialog';
+import { fetchSavedDocuments } from './api/ragAPI';
 
 export default function AIAssistant() {
   const theme = useTheme();
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  const [activeFeature, setActiveFeature] = useState('ai');
+  const [activeFeature, setActiveFeature] = useState<"email" | "ai">("ai");
   const [prompt, setPrompt] = useState('');
   const [email, setEmail] = useState('');
   const [tone, setTone] = useState('professional');
@@ -66,7 +55,6 @@ export default function AIAssistant() {
   const [result, setResult] = useState('');
   const [reasoning, setReasoning] = useState('');
   const [error, setError] = useState('');
-  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   // For sidebar and chat history
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -83,6 +71,14 @@ export default function AIAssistant() {
   // For temporary chat
   const [isTemporaryChat, setIsTemporaryChat] = useState(false);
 
+  // File upload and RAG state
+  const [uploadedFiles, setUploadedFiles] = useState<SavedDocument[]>([]);
+  const [isRagEnabled, setIsRagEnabled] = useState(false);
+  const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<string>('');
+  const [keyword, setKeyword] = useState('');
+  const [useCached, setUseCached] = useState(false);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [response, result, reasoning]);
@@ -93,6 +89,15 @@ export default function AIAssistant() {
       loadChatMessages(currentChatId);
     }
   }, [currentChatId]);
+
+  useEffect(() => {
+    loadDocuments();
+  }, []);
+
+  const loadDocuments = async () => {
+    const docs = await fetchSavedDocuments();
+    setUploadedFiles(docs);
+  };
 
   // For changing from light to dark and vice versa
   if (!mode) {
@@ -132,15 +137,35 @@ export default function AIAssistant() {
   };
 
   // Your AI response logic
-  const streamChat = async (question: string, model: string, temperature: number) => {
-  const response = await fetch("/api/chat/stream", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, model, temperature }),
-  });
+  const streamChat = async (
+    question: string, 
+    model: string, 
+    temperature: number,
+    ragOptions?: {
+      ragEnabled: boolean;
+      file_name?: string;
+      keyword?: string;
+      cached?: boolean;
+      alpha?: number;
+    }
+  ) => {
+    const response = await fetch("/api/chat/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        question, 
+        model, 
+        temperature,
+        ragEnabled: ragOptions?.ragEnabled || false,
+        file_name: ragOptions?.file_name || '',
+        keyword: ragOptions?.keyword || '',
+        cached: ragOptions?.cached || false,
+        alpha: ragOptions?.alpha || 0.7,
+      }),
+    });
 
-  return response; // Keep streaming intact
-};
+    return response;
+  };
 
   const getUserId = () => {
     let userId = localStorage.getItem('userId');
@@ -153,144 +178,41 @@ export default function AIAssistant() {
   };
 
   const handleStreamMessage = async () => {
-    if (!prompt || !selectedModel) return;
-    // eslint-disable-next-line prefer-const
-    let userMessage = prompt.trim()
+  if (!prompt || !selectedModel) return;
+  console.log("handleStreamMessage called with prompt:", prompt);
+  let userMessage = prompt.trim();
+  console.log("userMessage:", userMessage);
 
-    setLoading(true);
-    setIsStreaming(true);
-    setResponse("");
-    setReasoning("");
-    setError("");
+  setLoading(true);
+  setIsStreaming(true);
+  setResponse("");
+  setReasoning("");
+  setError("");
 
-    try {
-      // If temporary chat mode, skip all database operations
-      if (isTemporaryChat) {
-        // Add user message locally
-        const userMsg: Message = {
-          id: Date.now().toString(),
-          role: "user",
-          content: userMessage,
-          createdAt: new Date(),
-        };
-        setMessages(prev => [...prev, userMsg]);
+  try {
+    // If temporary chat mode, skip all database operations
+    if (isTemporaryChat) {
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: userMessage,
+        createdAt: new Date(),
+      };
+      setMessages(prev => [...prev, userMsg]);
 
-        // Start Streaming request
-        const streamRes = await streamChat(userMessage, selectedModel, temperature);
-        if (!streamRes.ok) {
-          throw new Error(`HTTP error! status: ${streamRes.status}`);
+      // Start Streaming request with RAG options
+      const streamRes = await streamChat(
+        userMessage, 
+        selectedModel, 
+        temperature,
+        {
+          ragEnabled: isRagEnabled,
+          file_name: selectedDocument,
+          keyword: keyword,
+          cached: useCached,
         }
+      );
 
-        const reader = streamRes.body?.getReader();
-        if (!reader) {
-          throw new Error("Failed to get response reader");
-        }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let finalAIText = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-
-            try {
-              const json = JSON.parse(line.slice(6));
-
-              if (json.error) {
-                setError(json.error);
-                break;
-              }
-              if (json.done) break;
-
-              if (json.type === "reasoning") {
-                setReasoning(prev => prev + json.content);
-              }
-
-              if (json.type === "content" || json.content) {
-                setResponse(prev => prev + json.content);
-                finalAIText += json.content;
-              }
-            } catch (e) {
-              console.error("Parse error:", e);
-            }
-          }
-        }
-
-        // Add AI message locally (no database save)
-        if (finalAIText.trim()) {
-          const aiMsg: Message = {
-            id: (Date.now() + 1).toString(),
-            role: "assistant",
-            content: finalAIText,
-            createdAt: new Date(),
-          };
-          setMessages(prev => [...prev, aiMsg]);
-        }
-
-        setPrompt("");
-        return;
-      }
-
-      let chatId = currentChatId;
-
-      // If it's a new chat, create it first
-      if (isNewChat) {
-        const createRes = await fetch('/api/chats', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': getUserId(),
-          },
-          body: JSON.stringify({ message: userMessage }),
-        });
-
-        if (!createRes.ok) {
-          const errorText = await createRes.text();
-          throw new Error(`Failed to create chat: ${errorText}`);
-        }
-
-        if (!createRes.ok) throw new Error("Failed to create chat");
-
-        const createData = await createRes.json();
-        chatId = createData.chat.id;
-
-        setCurrentChatId(chatId);
-        setIsNewChat(false);
-
-        // Add initial user message (local)
-        setMessages([
-          {
-            id: Date.now().toString(),
-            role: "user",
-            content: userMessage,
-            createdAt: new Date(),
-          },
-        ]);
-      } else {
-        // Existing chat → save user message
-        const userRes = await fetch(`/api/chats/${chatId}/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role: "user", content: userMessage }),
-        });
-
-        if (!userRes.ok) throw new Error("Failed to save user message");
-
-        const userData = await userRes.json();
-        setMessages(prev => [...prev, userData.message]);
-        setRefreshSidebar((prev) => prev + 1);
-      }
-
-      // Start Streaming request
-      const streamRes = await streamChat(userMessage, selectedModel, temperature);
       if (!streamRes.ok) {
         throw new Error(`HTTP error! status: ${streamRes.status}`);
       }
@@ -324,6 +246,11 @@ export default function AIAssistant() {
             }
             if (json.done) break;
 
+            // Handle RAG metadata
+            if (json.metadata?.rag_enabled) {
+              console.log('RAG is being used:', json.metadata);
+            }
+
             if (json.type === "reasoning") {
               setReasoning(prev => prev + json.content);
             }
@@ -338,24 +265,148 @@ export default function AIAssistant() {
         }
       }
 
-      // Save AI Message (full combined text)
       if (finalAIText.trim()) {
-        const aiRes = await fetch(`/api/chats/${chatId}/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role: "assistant", content: finalAIText }),
-        });
+        const aiMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: finalAIText,
+          createdAt: new Date(),
+        };
+        setMessages(prev => [...prev, aiMsg]);
+      }
 
-        setRefreshSidebar((prev) => prev + 1);
+      setPrompt("");
+      return;
+    }
 
-        if (!aiRes.ok) throw new Error("Failed to save AI response");
+    let chatId = currentChatId;
 
-        const aiData = await aiRes.json();
-        // Only save AI message to messages if chat is loaded from sidebar (persistent chat)
-        if (currentChatId && !isTemporaryChat) {
-          setMessages((prev) => [...prev, aiData.message]);
+    // If it's a new chat, create it first
+    if (isNewChat) {
+      const createRes = await fetch('/api/chats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': getUserId(),
+        },
+        body: JSON.stringify({ message: userMessage }),
+      });
+
+      if (!createRes.ok) {
+        const errorText = await createRes.text();
+        throw new Error(`Failed to create chat: ${errorText}`);
+      }
+
+      const createData = await createRes.json();
+      chatId = createData.chat.id;
+
+      setCurrentChatId(chatId);
+      setIsNewChat(false);
+
+      setMessages([
+        {
+          id: Date.now().toString(),
+          role: "user",
+          content: userMessage,
+          createdAt: new Date(),
+        },
+      ]);
+    } else {
+      const userRes = await fetch(`/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "user", content: userMessage }),
+      });
+
+      if (!userRes.ok) throw new Error("Failed to save user message");
+
+      const userData = await userRes.json();
+      setMessages(prev => [...prev, userData.message]);
+      setRefreshSidebar((prev) => prev + 1);
+    }
+
+    // Start Streaming request with RAG options
+    const streamRes = await streamChat(
+      userMessage, 
+      selectedModel, 
+      temperature,
+      {
+        ragEnabled: isRagEnabled,
+        file_name: selectedDocument,
+        keyword: keyword,
+        cached: useCached,
+      }
+    );
+
+    if (!streamRes.ok) {
+      throw new Error(`HTTP error! status: ${streamRes.status}`);
+    }
+
+    const reader = streamRes.body?.getReader();
+    if (!reader) {
+      throw new Error("Failed to get response reader");
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finalAIText = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+
+        try {
+          const json = JSON.parse(line.slice(6));
+
+          if (json.error) {
+            setError(json.error);
+            break;
+          }
+          if (json.done) break;
+
+          // Handle RAG metadata
+          if (json.metadata?.rag_enabled) {
+            console.log('RAG is being used:', json.metadata);
+          }
+
+          if (json.type === "reasoning") {
+            setReasoning(prev => prev + json.content);
+          }
+
+          if (json.type === "content" || json.content) {
+            setResponse(prev => prev + json.content);
+            finalAIText += json.content;
+          }
+        } catch (e) {
+          console.error("Parse error:", e);
         }
       }
+    }
+
+    // Save AI Message
+    if (finalAIText.trim()) {
+      const aiRes = await fetch(`/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "assistant", content: finalAIText }),
+      });
+
+      setRefreshSidebar((prev) => prev + 1);
+
+      if (!aiRes.ok) throw new Error("Failed to save AI response");
+
+      const aiData = await aiRes.json();
+      if (currentChatId && !isTemporaryChat) {
+        setMessages((prev) => [...prev, aiData.message]);
+      }
+    }
     } catch (err) {
       console.error("Stream error:", err);
       setError(`Streaming error: ${err}`);
@@ -422,75 +473,26 @@ export default function AIAssistant() {
         }}
       >
         {/* Top AppBar with Tabs */}
-        <AppBar position="static" color="default" elevation={1}>
-          <Toolbar>
-            <IconButton
-              edge="start"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              sx={{ mr: 2 }}
-            >
-              <MenuIcon />
-            </IconButton>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mr: 3 }}>
-              <SettingsSuggest color="primary" />
-              <Typography variant="h6" fontWeight="bold">
-                AI Assistant
-              </Typography>
-            </Box>
-
-            <Tabs
-              value={activeFeature === "email" ? 0 : 1}
-              onChange={(_, newValue) =>
-                setActiveFeature(newValue === 0 ? "email" : "ai")
-              }
-              sx={{ flex: 1 }}
-            >
-              <Tab
-                icon={<Email />}
-                iconPosition="start"
-                label="Email Assistant"
-              />
-              <Tab icon={<Psychology />} iconPosition="start" label="AI Chat" />
-            </Tabs>
-            {activeFeature === "ai" && (
-              <IconButton
-                onClick={() => {
-                  setIsTemporaryChat(!isTemporaryChat);
-                  if (!isTemporaryChat) {
-                    // Switching to temporary mode - clear current chat
-                    setCurrentChatId(null);
-                    setMessages([]);
-                    setResponse("");
-                    setReasoning("");
-                  }
-                }}
-                sx={{
-                  bgcolor: isTemporaryChat ? "warning.main" : "action.hover",
-                  color: isTemporaryChat ? "white" : "text.primary",
-                  "&:hover": {
-                    bgcolor: isTemporaryChat
-                      ? "warning.dark"
-                      : "action.selected",
-                  },
-                  transition: "all 0.2s",
-                }}
-              >
-                <FlashOn />
-              </IconButton>
-            )}
-            <IconButton
-              onClick={() => setMode(mode === "dark" ? "light" : "dark")}
-              sx={{
-                ml: 2,
-                bgcolor: "action.hover",
-                "&:hover": { bgcolor: "action.selected" },
-              }}
-            >
-              {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
-            </IconButton>
-          </Toolbar>
-        </AppBar>
+        <TopBar
+          activeFeature={activeFeature}
+          setActiveFeature={setActiveFeature}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          isRagEnabled={isRagEnabled}
+          setIsRagEnabled={setIsRagEnabled}
+          isTemporaryChat={isTemporaryChat}
+          toggleTemporaryChat={() => {
+            setIsTemporaryChat(!isTemporaryChat);
+            if (!isTemporaryChat) {
+              setCurrentChatId(null);
+              setMessages([]);
+              setResponse("");
+              setReasoning("");
+            }
+          }}
+          mode={mode}
+          setMode={setMode}
+        />
 
         {/* Chat Area */}
         <Box
@@ -525,220 +527,35 @@ export default function AIAssistant() {
 
             {/* Chat Messages History — show ONLY when loading a saved chat */}
             {currentChatId && !isTemporaryChat && messages.length > 0 && (
-              <Box sx={{ mb: 3 }}>
-                {messages.map((msg) => (
-                  <Box
-                    key={msg.id}
-                    sx={{
-                      mb: 2,
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor:
-                        msg.role === "user"
-                          ? "action.hover"
-                          : "background.paper",
-                      border: `1px solid ${theme.palette.divider}`,
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{ mb: 1, display: "block", color: "text.primary" }}
-                    >
-                      {msg.role === "user" ? "You" : "Assistant"}
-                    </Typography>
-                    <Box sx={{ color: "text.primary" }}>
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeHighlight]}
-                        components={{
-                          // Custom styling for various markdown elements
-                          p: ({ ...props }) => (
-                            <Typography
-                              variant="body1"
-                              sx={{ mb: 2 }}
-                              {...props}
-                            />
-                          ),
-                          h1: ({ ...props }) => (
-                            <Typography
-                              variant="h4"
-                              sx={{ mt: 3, mb: 2 }}
-                              {...props}
-                            />
-                          ),
-                          h2: ({ ...props }) => (
-                            <Typography
-                              variant="h5"
-                              sx={{ mt: 3, mb: 2 }}
-                              {...props}
-                            />
-                          ),
-                          h3: ({ ...props }) => (
-                            <Typography
-                              variant="h6"
-                              sx={{ mt: 2, mb: 1 }}
-                              {...props}
-                            />
-                          ),
-                          code: ({
-                            className,
-                            children,
-                            ...props
-                          }: // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          any) => {
-                            const inline = !className?.includes("language-");
-                            return !inline ? (
-                              <Paper
-                                sx={{
-                                  p: 1.5,
-                                  mb: 2,
-                                  overflow: "auto",
-                                  bgcolor: "background.default",
-                                }}
-                                elevation={0}
-                              >
-                                <code
-                                  style={{ fontFamily: "monospace" }}
-                                  className={className}
-                                  {...props}
-                                >
-                                  {children}
-                                </code>
-                              </Paper>
-                            ) : (
-                              <code
-                                style={{
-                                  backgroundColor: theme.palette.action.hover,
-                                  padding: "2px 4px",
-                                  borderRadius: 4,
-                                }}
-                                {...props}
-                              >
-                                {children}
-                              </code>
-                            );
-                          },
-                        }}
-                      >
-                        {msg.content}
-                      </ReactMarkdown>
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
+              <ChatMessages
+                currentChatId={currentChatId}
+                isTemporaryChat={isTemporaryChat}
+                messages={messages}
+              />
             )}
 
             {/* Welcome Message */}
             {!response && !result && messages.length === 0 && (
-              <Box textAlign="center" py={12}>
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  gap={1}
-                  mb={2}
-                >
-                  {activeFeature === "email" ? (
-                    <>
-                      <AutoFixHigh sx={{ fontSize: 40 }} color="primary" />
-                      <Typography
-                        variant="h3"
-                        fontWeight="bold"
-                        sx={{ color: "text.primary" }}
-                      >
-                        Email Rewriter
-                      </Typography>
-                    </>
-                  ) : (
-                    <>
-                      <Chat sx={{ fontSize: 40 }} color="primary" />
-                      <Typography
-                        variant="h3"
-                        fontWeight="bold"
-                        sx={{ color: "text.primary" }}
-                      >
-                        AI Chat
-                      </Typography>
-                    </>
-                  )}
-                </Box>
-                <Typography variant="h6" sx={{ color: "text.primary" }}>
-                  {activeFeature === "email"
-                    ? "Paste your email and select a tone to get an improved version"
-                    : "Ask questions to different AI models with adjustable creativity"}
-                </Typography>
-              </Box>
+              <WelcomeMessage
+                activeFeature={activeFeature}
+                show={!response && !result && messages.length === 0}
+              />
             )}
 
             {loading && <LinearProgress sx={{ mb: 2 }} />}
 
             {/* Reasoning Display */}
             {reasoning && (
-              <Box
-                mb={3}
-                p={3}
-                border={`2px dashed ${theme.palette.warning.main}`}
-                borderRadius={2}
-                bgcolor={theme.palette.warning.light + "20"}
-              >
-                <Box display="flex" alignItems="center" gap={1} mb={1}>
-                  <Psychology color="warning" />
-                  <Typography variant="subtitle1" fontWeight="medium">
-                    Reasoning Process
-                  </Typography>
-                </Box>
-                <Typography
-                  variant="body2"
-                  component="pre"
-                  sx={{
-                    fontFamily: "monospace",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {reasoning}
-                </Typography>
-              </Box>
+              <ReasoningBox reasoning={reasoning} />
             )}
 
             {/* Response Display */}
             {(result || response) && (
-              <Box
-                p={3}
-                border={`1px solid ${theme.palette.divider}`}
-                borderRadius={2}
-                bgcolor="background.paper"
-                boxShadow={1}
-              >
-                <Box display="flex" alignItems="center" gap={1} mb={2}>
-                  {activeFeature === "email" ? (
-                    <>
-                      <AutoFixHigh color="primary" />
-                      <Typography
-                        variant="subtitle1"
-                        fontWeight="medium"
-                        sx={{ color: "text.primary" }}
-                      >
-                        Rewritten Email
-                      </Typography>
-                    </>
-                  ) : (
-                    <>
-                      <Chat color="primary" />
-                      <Typography
-                        variant="subtitle1"
-                        fontWeight="medium"
-                        sx={{ color: "text.primary" }}
-                      >
-                        AI Response
-                      </Typography>
-                    </>
-                  )}
-                </Box>
-                <Box sx={{ color: "text.primary" }}>
-                  <Streamdown>{result || response}</Streamdown>
-                </Box>
-              </Box>
+              <ResponseBox
+                response={response}
+                result={result}
+                feature={activeFeature}
+              />
             )}
 
             <div ref={chatEndRef} />
@@ -932,6 +749,34 @@ export default function AIAssistant() {
                     inputProps={{ min: 0, max: 2, step: 0.1 }}
                     sx={{ width: 120 }}
                   />
+
+                  {/* Documents Button */}
+                  <Tooltip title="Manage uploaded documents">
+                    <IconButton
+                      onClick={() => setDocumentsDialogOpen(true)}
+                      color={uploadedFiles.length > 0 ? "primary" : "default"}
+                      sx={{
+                        border: 1,
+                        borderColor: uploadedFiles.length > 0 ? 'primary.main' : 'divider',
+                      }}
+                    >
+                      <FolderIcon />
+                      {uploadedFiles.length > 0 && (
+                        <Chip
+                          label={uploadedFiles.length}
+                          size="small"
+                          color="primary"
+                          sx={{
+                            position: 'absolute',
+                            top: -8,
+                            right: -8,
+                            height: 20,
+                            minWidth: 20,
+                          }}
+                        />
+                      )}
+                    </IconButton>
+                  </Tooltip>
                 </>
               ) : (
                 <FormControl size="small" sx={{ minWidth: 200 }}>
@@ -952,6 +797,65 @@ export default function AIAssistant() {
               )}
             </Box>
 
+            {/* RAG Options - Show when RAG is enabled */}
+            {activeFeature === "ai" && isRagEnabled && (
+              <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
+                {/* Document Selector */}
+                <FormControl size="small" sx={{ minWidth: 250 }}>
+                  <InputLabel>Select Document</InputLabel>
+                  <Select
+                    value={selectedDocument}
+                    onChange={(e) => setSelectedDocument(e.target.value)}
+                    label="Select Document"
+                    disabled={uploadedFiles.length === 0}
+                  >
+                    <MenuItem value="">
+                      <em>All Documents</em>
+                    </MenuItem>
+                    {uploadedFiles.map((doc) => (
+                      <MenuItem key={doc.file_name} value={doc.file_name}>
+                        {doc.file_name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                {/* Keyword Search */}
+                <TextField
+                  size="small"
+                  label="Keyword (optional)"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder="Add keyword for hybrid search"
+                  sx={{ minWidth: 200 }}
+                />
+
+                {/* Cache Toggle */}
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={useCached}
+                      onChange={(e) => setUseCached(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Typography variant="body2">Use Cache</Typography>
+                  }
+                />
+
+                {uploadedFiles.length === 0 && (
+                  <Typography 
+                    variant="caption" 
+                    color="warning.main" 
+                    sx={{ display: 'flex', alignItems: 'center', ml: 1 }}
+                  >
+                    No documents uploaded. Click the folder icon to upload PDFs.
+                  </Typography>
+                )}
+              </Box>
+            )}
+
             {/* Input Box */}
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
               <TextField
@@ -963,6 +867,8 @@ export default function AIAssistant() {
                 placeholder={
                   activeFeature === "email"
                     ? "Paste your email here..."
+                    : isRagEnabled && uploadedFiles.length > 0
+                    ? "Ask a question about your documents..."
                     : "Ask me anything..."
                 }
                 variant="outlined"
@@ -989,6 +895,13 @@ export default function AIAssistant() {
             </Box>
           </Box>
         </Box>
+        {/* Documents Dialog */}
+        <DocumentsDialog
+          open={documentsDialogOpen}
+          onClose={() => setDocumentsDialogOpen(false)}
+          documents={uploadedFiles}
+          onDocumentsUpdate={loadDocuments}
+        />
       </Box>
     </Box>
   );
