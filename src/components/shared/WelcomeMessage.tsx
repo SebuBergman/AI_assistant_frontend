@@ -7,9 +7,10 @@ import { Chat, AutoFixHigh } from "@mui/icons-material";
 interface WelcomeMessageProps {
   activeFeature: "ai" | "email";
   show: boolean; // whether to render or not
+  mode: "light" | "dark" | "system";
 }
 
-const WelcomeMessage: React.FC<WelcomeMessageProps> = ({ activeFeature, show }) => {
+const WelcomeMessage: React.FC<WelcomeMessageProps> = ({ activeFeature, show, mode }) => {
   if (!show) return null;
 
   const isEmail = activeFeature === "email";
@@ -33,7 +34,7 @@ const WelcomeMessage: React.FC<WelcomeMessageProps> = ({ activeFeature, show }) 
         ) : (
           <>
             <Chat sx={{ fontSize: 40 }} color="primary" />
-            <Typography variant="h3" fontWeight="bold">
+            <Typography variant="h3" fontWeight="bold" sx={{ color: mode ? "dark" : "#fff", }}>
               AI Chat
             </Typography>
           </>
