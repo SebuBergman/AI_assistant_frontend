@@ -24,27 +24,3 @@ export const rewriteEmail = async (email: string, tone: string): Promise<string>
     throw error; // Re-throw so component can handle it
   }
 };
-
-export const askAI = async (
-  question: string,
-  model: string,
-  temperature: number
-) => {
-  try {
-    const response = await fetch("http://localhost:8000/ask_ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        question,
-        model,
-        temperature,
-      }),
-    });
-    return response; // Return the Response object directly for streaming
-  } catch (error) {
-    console.error("Error:", error);
-    throw error; // Throw the error so it can be caught in Home.tsx
-  }
-};
