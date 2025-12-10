@@ -23,7 +23,7 @@ export const uploadPDF = async (file: File) => {
 
 export const fetchSavedDocuments = async (): Promise<SavedDocument[]> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/pdfs`);
+    const response = await axios.get(`${API_BASE_URL}/fetch_pdfs`);
     return response.data.pdfs || [];
   } catch (error) {
     console.error('Error fetching documents:', error);
