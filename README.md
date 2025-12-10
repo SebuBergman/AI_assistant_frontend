@@ -1,62 +1,185 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend – AI Assistant Interface
 
-## Getting Started
+## 📌 Overview
+This is the UI for the AI Assistant platform — inspired by modern chat-based AI apps (ChatGPT, Claude, etc.).
 
-First, run the development server:
+Users can:
+- Chat with AI across **13 models**
+- View model tooltips with pricing & ideal use case info
+- Adjust temperature
+- Switch between **dark/light mode**
+- Enable **Temporary Chat** (doesn’t save to Redis)
+- Enable/disable **RAG**
+- Upload PDFs & delete all documents
+- Pick embedded PDFs for hybrid search queries
+- Use keyword search (optional) + prompt
+- Manage sidebar chat history (auto-generated titles)
 
+---
+
+## 🧠 Tech Stack
+- **Next.js**
+- **TypeScript**
+- **MUI Material UI**
+- **Axios**
+- **ioredis**
+- **pg**
+- **react-router-dom**
+- **react-markdown**
+- **streamdown**
+- **uuid**
+- **remark-gfm**
+- **rehype-highlight**
+
+---
+
+## 🚀 Getting Started
+
+### 1. Install dependencies
 ```bash
 npm install
-# or
-yarn install
-# then
-npm run dev
-# or
-yarn dev
 ```
 
-🔧 Environment Variables
+### 2. Run development server
+```bash
+npm run dev
+```
 
-Create a .env file in the root of your project and add the following variables:
+Open your browser at:  
+👉 **http://localhost:3000**
 
-# Supabase
-SUPABASE_URL=<supabase_url><br>
-SUPABASE_KEY=<supabase_key>
+---
 
-# Database
-DATABASE_URL=postgresql://user:<supabase_key>@host:5432/<dbname>
+## 🔧 Editing
+You can begin editing the UI by modifying:
+
+```
+app/page.tsx
+```
+
+The page auto-reloads when files are saved.
+
+---
+
+## ⚠️ Known Bug (IMPORTANT)
+GitHub sometimes capitalizes the file as:
+
+```
+Page.tsx
+```
+
+This **breaks Next.js routing**.  
+Rename it manually to:
+
+```
+page.tsx
+```
+
+---
+
+## 🔐 Environment Variables
+
+1. Create `.env` in the project root  
+2. Copy all keys from `.env-template`  
+3. Replace `<placeholder>` values with real credentials  
+
+Example:
+
+```
+# Supabase db
+DATABASE_URL=postgresql://<USER>:<PASSWORD>@<HOST>:<PORT>/<DATABASE>?sslmode=require
 
 # Redis
-REDIS_HOST=<redis_public_endpoint><br>
-REDIS_PORT=<redis_port><br>
-REDIS_PASSWORD=<redis_security_password>
+REDIS_HOST=<public-endpoint (without the :port-number on the end)>
+REDIS_PORT=<redis-port>
+REDIS_PASSWORD=<redis-user-password>
 
 # Python Backend
-PY_BACKEND_URL=<python_backend_url>
+PY_BACKEND_URL=<backend-url>
+```
 
-Steps<br>
-1. Create a new file named .env in the project root.
-2. Copy the variables above into the file.
-3. Replace every <placeholder> with your real credentials.
+---
 
-<br><br>
-# Deployment
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🧩 Supabase Schema
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Below is the schema used by the frontend for storing chats & messages.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Chats Table
+```sql
+create table public.chats (
+  id uuid not null default gen_random_uuid(),
+  user_id character varying(255) not null,
+  title character varying(500) not null,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  constraint chats_pkey primary key (id)
+) TABLESPACE pg_default;
 
-## Learn More
+create index IF not exists idx_user_chats 
+on public.chats using btree (user_id, updated_at desc) 
+TABLESPACE pg_default;
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Messages Table
+```sql
+create table public.messages (
+  id uuid not null default gen_random_uuid(),
+  chat_id uuid not null,
+  role character varying(50) not null,
+  content text not null,
+  created_at timestamp with time zone null default now(),
+  constraint messages_pkey primary key (id),
+  constraint messages_chat_id_fkey 
+    foreign KEY (chat_id) references chats (id) on delete CASCADE
+) TABLESPACE pg_default;
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+create index IF not exists idx_chat_messages 
+on public.messages using btree (chat_id, created_at) 
+TABLESPACE pg_default;
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### What these schemas support
+- Auto-generated chat titles
+- Fast retrieval by user + updated timestamp
+- Fast message loading per chat
+- Automatic cleanup (messages deleted if chat is deleted)
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📄 Features Summary
+### Chat UI / Model Tools
+- Agent-like interface  
+- Supports 13 AI models  
+- Tooltip with model pricing + ideal usage  
+- Temperature slider  
+- Light/Dark theme toggle  
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### RAG
+- Enable/disable hybrid RAG  
+- Upload PDFs  
+- Delete all PDFs  
+- Pick a document  
+- Query with keyword + prompt  
+
+### Sidebar Chat History
+- Saved in Redis  
+- Auto-generated conversation titles  
+- Temporary chat mode disables saving  
+
+---
+
+## 📝 TODO (Frontend)
+- Improve auto-generated chat titles (too similar currently)
+- Add ability to delete a single PDF (currently only “delete all”)
+- Fix upload date — currently shows “Invalid date”
+- Fix dark mode: `h3` / `h6` text colors in chat area
+- Fix rewrite email feature (currently erroring)
+- Enhance RAG preview for selected PDFs
+
+---
+
+## 🔗 Backend Link
+👉 **View the Backend README here:**  
+
+[`https://github.com/your-username/backend-repo`](https://github.com/SebuBergman/AI_assistant_backend)
+
