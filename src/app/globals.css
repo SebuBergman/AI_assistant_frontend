@@ -44,11 +44,6 @@ a {
   text-decoration: none;
 }
 
-/* Ensure headings use the foreground color */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--foreground);
-}
-
 /* Target MUI Typography specifically */
 .MuiTypography-root {
   color: inherit !important;

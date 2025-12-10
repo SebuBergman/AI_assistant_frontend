@@ -3,33 +3,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
-  TextField,
-  Select,
-  MenuItem,
-  Typography,
   IconButton,
   LinearProgress,
   Alert,
-  FormControl,
-  InputLabel,
-  ListSubheader,
-  Tooltip,
-  FormControlLabel,
-  Switch,
-  Chip,
 } from '@mui/material';
 import {
-  Send,
   Close as CloseIcon,
   FlashOn,
-  Folder as FolderIcon,
 } from '@mui/icons-material';
 import { useColorScheme, useTheme } from '@mui/material/styles';
 import { rewriteEmail } from '@/lib/API_requests';
 import { chatgptModels, claudeModels, deepseekModels, tones } from '@/components/data';
 import ChatSidebar from '@/components/chatSidebar';
 import "highlight.js/styles/github.css";
-import InfoIcon from "@mui/icons-material/Info";
 import { Message, SavedDocument } from "@/app/types";
 import TopBar from '@/components/shared/TopBar';
 import { ChatMessages } from '@/components/chat/ChatMessages';
@@ -192,6 +178,7 @@ export default function AIAssistant() {
   setResponse("");
   setReasoning("");
   setError("");
+  setPrompt("");
 
   try {
     // If temporary chat mode, skip all database operations
@@ -279,7 +266,6 @@ export default function AIAssistant() {
         setMessages(prev => [...prev, aiMsg]);
       }
 
-      setPrompt("");
       return;
     }
 
@@ -543,6 +529,7 @@ export default function AIAssistant() {
               <WelcomeMessage
                 activeFeature={activeFeature}
                 show={!response && !result && messages.length === 0}
+                mode={mode}
               />
             )}
 
