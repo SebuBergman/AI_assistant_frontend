@@ -17,6 +17,7 @@ export interface SavedDocument {
   file_name: string;
   s3_url: string;
   uploaded_at: string;
+  timestamp: number;
 }
 
 export interface RAGOptions {

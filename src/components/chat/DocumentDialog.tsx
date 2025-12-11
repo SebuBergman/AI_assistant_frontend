@@ -146,7 +146,7 @@ export const DocumentsDialog: React.FC<DocumentsDialogProps> = ({
                   <FileIcon sx={{ mr: 2, color: 'primary.main' }} />
                   <ListItemText
                     primary={doc.file_name}
-                    secondary={`Uploaded: ${new Date(doc.uploaded_at).toLocaleDateString()}`}
+                    secondary={`Uploaded: ${new Date(doc.timestamp).toLocaleDateString()}`}
                   />
                 </ListItem>
               ))}
