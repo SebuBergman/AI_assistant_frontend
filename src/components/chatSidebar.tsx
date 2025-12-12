@@ -19,7 +19,6 @@ import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import { getUserId } from "@/lib/db";
 
 interface Chat {
   id: string;
@@ -180,6 +179,15 @@ export default function ChatSidebar({
     if (diffDays < 7) return `${diffDays}d ago`;
 
     return date.toLocaleDateString();
+  };
+
+  const getUserId = () => {
+    let userId = process.env.USER_ID || "default-user";
+    if (!userId) {
+      userId = process.env.USER_ID || "default-user";
+      localStorage.setItem("userId", userId);
+    }
+    return userId;
   };
 
   return (

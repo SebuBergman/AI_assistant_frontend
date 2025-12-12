@@ -30,7 +30,6 @@ import { DocumentsButton } from '@/components/controls/DocumentsButton';
 import { ToneSelector } from '@/components/controls/ToneSelector';
 import { RagControls } from '@/components/controls/RagControls';
 import { MessageInput } from '@/components/controls/MessageInput';
-import { getUserId } from '@/lib/db';
 
 export default function AIAssistant() {
   const theme = useTheme();
@@ -158,6 +157,15 @@ export default function AIAssistant() {
     });
 
     return response;
+  };
+
+  const getUserId = () => {
+    let userId = process.env.USER_ID || "default-user";
+    if (!userId) {
+      userId = process.env.USER_ID || "default-user";
+      localStorage.setItem("userId", userId);
+    }
+    return userId;
   };
 
   const handleStreamMessage = async () => {
