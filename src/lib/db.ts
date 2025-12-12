@@ -46,3 +46,12 @@ export const CACHE_TTL = {
   chats: 3600, // 1 hour
   messages: 7200, // 2 hours
 }
+
+export const getUserId = () => {
+  let userId = process.env.USER_ID || "default-user";
+  if (!userId) {
+    userId = process.env.USER_ID || "default-user";
+    localStorage.setItem("userId", userId);
+  }
+  return userId;
+};
