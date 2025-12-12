@@ -31,6 +31,18 @@ export const fetchSavedDocuments = async (): Promise<SavedDocument[]> => {
   }
 };
 
+export const deleteDocument = async (fileName: string) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/delete_document`, {
+      file_name: fileName
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    throw error;
+  }
+};
+
 export const deleteAllDocuments = async () => {
   try {
     const response = await axios.post(`${API_BASE_URL}/clear_all`);

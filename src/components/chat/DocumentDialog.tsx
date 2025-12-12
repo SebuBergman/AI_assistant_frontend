@@ -21,7 +21,7 @@ import {
   InsertDriveFile as FileIcon,
 } from '@mui/icons-material';
 import { SavedDocument } from '@/app/types';
-import { deleteAllDocuments, uploadPDF } from '@/app/api/ragAPI';
+import { deleteAllDocuments, deleteDocument, uploadPDF } from '@/app/api/ragAPI';
 
 interface DocumentsDialogProps {
   open: boolean;
@@ -66,6 +66,23 @@ export const DocumentsDialog: React.FC<DocumentsDialogProps> = ({
       setUploading(false);
       // Reset input
       event.target.value = '';
+    }
+  };
+
+  const handleDelete = async (fileName: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${fileName}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await deleteDocument(fileName);
+      setUploadSuccess(`"${fileName}" deleted successfully`);
+      onDocumentsUpdate();
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setUploadSuccess(''), 3000);
+    } catch (error) {
+      setUploadError('Failed to delete document. Please try again.');
     }
   };
 
@@ -129,29 +146,39 @@ export const DocumentsDialog: React.FC<DocumentsDialogProps> = ({
           </Typography>
         ) : (
           <>
-            <Typography variant="subtitle2" gutterBottom>
-              Uploaded Documents ({documents.length})
-            </Typography>
-            <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-              {documents.map((doc) => (
-                <ListItem
-                  key={doc.file_name}
-                  sx={{
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    mb: 1,
-                  }}
-                >
-                  <FileIcon sx={{ mr: 2, color: 'primary.main' }} />
-                  <ListItemText
-                    primary={doc.file_name}
-                    secondary={`Uploaded: ${new Date(doc.timestamp).toLocaleDateString()}`}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </>
+          <Typography variant="subtitle2" gutterBottom>
+            Uploaded Documents ({documents.length})
+          </Typography>
+          <List sx={{ maxHeight: 400, overflow: 'auto' }}>
+            {documents.map((doc) => (
+              <ListItem
+                key={doc.file_name}
+                sx={{
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  mb: 1,
+                }}
+                secondaryAction={
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    onClick={() => handleDelete(doc.file_name)}
+                    sx={{ color: 'error.main' }}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                }
+              >
+                <FileIcon sx={{ mr: 2, color: 'primary.main' }} />
+                <ListItemText
+                  primary={doc.file_name}
+                  secondary={`Uploaded: ${new Date(doc.timestamp).toLocaleDateString()}`}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </>
         )}
       </DialogContent>
       <DialogActions>
