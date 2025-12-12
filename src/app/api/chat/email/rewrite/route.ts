@@ -1,23 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
+// app/api/chat/email/rewrite/route.ts
+import { NextRequest } from 'next/server';
+import { ChatService } from '@/lib/chatService';
 
 const PYTHON_API_URL = process.env.PY_BACKEND_URL || 'http://localhost:8000';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, tone } = await req.json();
+    const { email, tone} = await req.json();
 
     // Validate input
     if (!email || typeof email !== 'string') {
-      return NextResponse.json(
-        { error: 'Email content is required' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: 'Email content is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
     
     if (!tone || typeof tone !== 'string') {
-      return NextResponse.json(
-        { error: 'Tone is required' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: 'Tone is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -29,27 +31,26 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         email,
-        tone
+        tone,
       }),
     });
 
     if (!backendRes.ok) {
-      console.error('[POST /api/email/rewrite] Python API error:', backendRes.status);
-      throw new Error(`Python API error: ${backendRes.status}`);
+      console.error('[POST /api/chat/email/rewrite] Python API error:', backendRes.status);
+      return new Response("Backend error", { status: backendRes.status });
     }
 
-    const data = await backendRes.json();
-
     // Stream the backend response directly to the client
-    return NextResponse.json({
-      rewritten_email: data.rewritten_email || 'No response received.',
+    return new Response(backendRes.body, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
     });
     
   } catch (error) {
-    console.error('[POST /api/email/rewrite] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to rewrite email. Please try again.' },
-      { status: 500 }
-    );
+    console.error("Proxy error:", error);
+    return new Response("Internal server error", { status: 500 });
   }
 }
