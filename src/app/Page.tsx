@@ -46,7 +46,7 @@ export default function AIAssistant() {
   const [result, setResult] = useState('');
   const [reasoning, setReasoning] = useState('');
   const [error, setError] = useState('');
-
+  
   // For sidebar and chat history
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
@@ -69,8 +69,6 @@ export default function AIAssistant() {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   const [keyword, setKeyword] = useState('');
   const [useCached, setUseCached] = useState(false);
-
-  const PYTHON_API_URL = process.env.PY_BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -789,6 +787,7 @@ export default function AIAssistant() {
               <ChatMessages
                 messages={messages}
                 isStreaming={loading}
+                mode={mode}
               />
             )}
 
