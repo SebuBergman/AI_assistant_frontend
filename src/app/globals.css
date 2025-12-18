@@ -46,7 +46,7 @@ a {
 
 /* Target MUI Typography specifically */
 .MuiTypography-root {
-  color: inherit !important;
+  color: inherit;
 }
 
 @media (prefers-color-scheme: dark) {
