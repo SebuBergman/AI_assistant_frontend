@@ -219,6 +219,16 @@ export default function AIAssistant() {
         const decoder = new TextDecoder();
         let buffer = "";
         let finalAIText = "";
+        let streamingAIMessageId = (Date.now() + 1).toString();
+
+        // Add empty AI message that will be updated during streaming
+        const streamingAIMsg: Message = {
+          id: streamingAIMessageId,
+          role: "assistant",
+          content: "",
+          createdAt: new Date(),
+        };
+        setMessages(prev => [...prev, streamingAIMsg]);
 
         while (true) {
           const { done, value } = await reader.read();
@@ -252,26 +262,21 @@ export default function AIAssistant() {
                 setReasoning(prev => prev + json.content);
               }
 
-              // Update main response display
+              // Update AI message in real-time
               if (json.type === "content" || json.content) {
-                setResponse(prev => prev + json.content);
                 finalAIText += json.content;
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.id === streamingAIMessageId 
+                      ? { ...msg, content: finalAIText }
+                      : msg
+                  )
+                );
               }
             } catch (e) {
               console.error("Parse error:", e);
             }
           }
-        }
-
-        // Add completed AI message to chat
-        if (finalAIText.trim()) {
-          const aiMsg: Message = {
-            id: (Date.now() + 1).toString(),
-            role: "assistant",
-            content: finalAIText,
-            createdAt: new Date(),
-          };
-          setMessages(prev => [...prev, aiMsg]);
         }
 
         return;
@@ -297,7 +302,7 @@ export default function AIAssistant() {
         }
 
         const createData = await createRes.json();
-        chatId = createData.chat.id; // Get new chat ID
+        chatId = createData.chat.id;
 
         // Update state to persistent chat
         setCurrentChatId(chatId);
@@ -324,10 +329,10 @@ export default function AIAssistant() {
 
         const userData = await userRes.json();
         setMessages(prev => [...prev, userData.message]);
-        setRefreshSidebar((prev) => prev + 1); // Trigger sidebar update
+        setRefreshSidebar((prev) => prev + 1);
       }
 
-      // Stream AI response (same as temporary mode)
+      // Stream AI response
       const streamRes = await streamChat(
         userMessage, 
         selectedModel, 
@@ -353,6 +358,16 @@ export default function AIAssistant() {
       const decoder = new TextDecoder();
       let buffer = "";
       let finalAIText = "";
+      let streamingAIMessageId = (Date.now() + 1).toString();
+
+      // Add empty AI message that will be updated during streaming
+      const streamingAIMsg: Message = {
+        id: streamingAIMessageId,
+        role: "assistant",
+        content: "",
+        createdAt: new Date(),
+      };
+      setMessages(prev => [...prev, streamingAIMsg]);
 
       while (true) {
         const { done, value } = await reader.read();
@@ -382,9 +397,16 @@ export default function AIAssistant() {
               setReasoning(prev => prev + json.content);
             }
 
+            // Update AI message in real-time
             if (json.type === "content" || json.content) {
-              setResponse(prev => prev + json.content);
               finalAIText += json.content;
+              setMessages(prev => 
+                prev.map(msg => 
+                  msg.id === streamingAIMessageId 
+                    ? { ...msg, content: finalAIText }
+                    : msg
+                )
+              );
             }
           } catch (e) {
             console.error("Parse error:", e);
@@ -400,14 +422,9 @@ export default function AIAssistant() {
           body: JSON.stringify({ role: "assistant", content: finalAIText }),
         });
 
-        setRefreshSidebar((prev) => prev + 1); // Trigger sidebar update
+        setRefreshSidebar((prev) => prev + 1);
 
         if (!aiRes.ok) throw new Error("Failed to save AI response");
-
-        const aiData = await aiRes.json();
-        if (currentChatId && !isTemporaryChat) {
-          setMessages((prev) => [...prev, aiData.message]);
-        }
       }
     } catch (err) {
       console.error("Stream error:", err);
@@ -460,10 +477,8 @@ export default function AIAssistant() {
       };
       setMessages(prev => [...prev, userMsg]);
 
-      // Stream AI response through Next.js API (not Python API directly)
-      const emailStreamRes = await streamRewrite(
-        email, tone
-      );
+      // Stream AI response
+      const emailStreamRes = await streamRewrite(email, tone);
 
       if (!emailStreamRes.ok) {
         throw new Error(`HTTP error! status: ${emailStreamRes.status}`);
@@ -478,6 +493,16 @@ export default function AIAssistant() {
       const decoder = new TextDecoder();
       let buffer = "";
       let finalText = "";
+      let streamingAIMessageId = (Date.now() + 1).toString();
+
+      // Add empty AI message that will be updated during streaming
+      const streamingAIMsg: Message = {
+        id: streamingAIMessageId,
+        role: "assistant",
+        content: "",
+        createdAt: new Date(),
+      };
+      setMessages(prev => [...prev, streamingAIMsg]);
 
       while (true) {
         const { done, value } = await reader.read();
@@ -499,27 +524,21 @@ export default function AIAssistant() {
             }
             if (json.done) break;
 
-            // Update result display
+            // Update AI message in real-time
             if (json.type === "content" || json.content) {
-              setResult(prev => prev + json.content);
               finalText += json.content;
+              setMessages(prev => 
+                prev.map(msg => 
+                  msg.id === streamingAIMessageId 
+                    ? { ...msg, content: finalText }
+                    : msg
+                )
+              );
             }
           } catch (e) {
             console.error("Parse error:", e);
           }
         }
-      }
-
-      // Add completed AI message to local chat
-      console.log(finalText)
-      if (finalText.trim()) {
-        const aiMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: finalText,
-          createdAt: new Date(),
-        };
-        setMessages(prev => [...prev, aiMsg]);
       }
 
       return;
@@ -576,16 +595,13 @@ export default function AIAssistant() {
     }
 
     // Stream AI response
-    const emailStreamRes = await streamRewrite(
-      email, tone
-    );
+    const emailStreamRes = await streamRewrite(email, tone);
 
     if (!emailStreamRes.ok) {
       throw new Error(`HTTP error! status: ${emailStreamRes.status}`);
     }
 
     const reader = emailStreamRes.body?.getReader();
-    console.log(reader)
     if (!reader) {
       throw new Error("Failed to get response reader");
     }
@@ -594,6 +610,16 @@ export default function AIAssistant() {
     const decoder = new TextDecoder();
     let buffer = "";
     let finalText = "";
+    let streamingAIMessageId = (Date.now() + 1).toString();
+
+    // Add empty AI message that will be updated during streaming
+    const streamingAIMsg: Message = {
+      id: streamingAIMessageId,
+      role: "assistant",
+      content: "",
+      createdAt: new Date(),
+    };
+    setMessages(prev => [...prev, streamingAIMsg]);
 
     while (true) {
       const { done, value } = await reader.read();
@@ -615,10 +641,16 @@ export default function AIAssistant() {
           }
           if (json.done) break;
 
-          // Update result display
+          // Update AI message in real-time
           if (json.type === "content" || json.content) {
-            setResult(prev => prev + json.content);
             finalText += json.content;
+            setMessages(prev => 
+              prev.map(msg => 
+                msg.id === streamingAIMessageId 
+                  ? { ...msg, content: finalText }
+                  : msg
+              )
+            );
           }
         } catch (e) {
           console.error("Parse error:", e);
@@ -627,7 +659,6 @@ export default function AIAssistant() {
     }
 
     // Save assistant response to database
-    console.log(finalText)
     if (finalText.trim() && chatId) {
       const aiRes = await fetch(`/api/chats/${chatId}/messages`, {
         method: "POST",
@@ -638,9 +669,6 @@ export default function AIAssistant() {
       setRefreshSidebar((prev) => prev + 1);
 
       if (!aiRes.ok) throw new Error("Failed to save AI response");
-
-      const aiData = await aiRes.json();
-      setMessages(prev => [...prev, aiData.message]);
     }
 
   } catch (err) {
@@ -734,45 +762,33 @@ export default function AIAssistant() {
                 {error}
               </Alert>
             )}
+            
             {/* Temporary Chat Indicator */}
             {isTemporaryChat && (
               <Alert severity="warning" icon={<FlashOn />} sx={{ mb: 3 }}>
-                <strong>Temporary Chat Mode:</strong> Messages won&apos;t be
-                saved to history
+                <strong>Temporary Chat Mode:</strong> Messages won&apos;t be saved to history
               </Alert>
-            )}
-
-            {/* Chat Messages History — show ONLY when loading a saved chat */}
-            {currentChatId && !isTemporaryChat && messages.length > 0 && (
-              <ChatMessages
-                currentChatId={currentChatId}
-                isTemporaryChat={isTemporaryChat}
-                messages={messages}
-              />
-            )}
-
-            {/* Welcome Message */}
-            {!response && !result && messages.length === 0 && (
-              <WelcomeMessage
-                activeFeature={activeFeature}
-                show={!response && !result && messages.length === 0}
-                mode={mode}
-              />
             )}
 
             {loading && <LinearProgress sx={{ mb: 2 }} />}
 
             {/* Reasoning Display */}
-            {reasoning && (
-              <ReasoningBox reasoning={reasoning} />
+            {reasoning && <ReasoningBox reasoning={reasoning} />}
+
+            {/* Welcome Message - only show if no messages at all */}
+            {messages.length === 0 && (
+              <WelcomeMessage
+                activeFeature={activeFeature}
+                show={true}
+                mode={mode}
+              />
             )}
 
-            {/* Response Display */}
-            {(result || response) && (
-              <ResponseBox
-                response={response}
-                result={result}
-                feature={activeFeature}
+            {/* Chat Messages - show ALL messages including current response */}
+            {messages.length > 0 && (
+              <ChatMessages
+                messages={messages}
+                isStreaming={loading}
               />
             )}
 
