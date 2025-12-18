@@ -27,21 +27,25 @@ const WelcomeMessage: React.FC<WelcomeMessageProps> = ({ activeFeature, show, mo
         {isEmail ? (
           <>
             <AutoFixHigh sx={{ fontSize: 40 }} color="primary" />
-            <Typography variant="h3" fontWeight="bold">
+            <Typography variant="h3" fontWeight="bold" sx={{ color: mode === "dark" ? "#fff" : "#000" }}>
               Email Rewriter
             </Typography>
           </>
         ) : (
           <>
             <Chat sx={{ fontSize: 40 }} color="primary" />
-            <Typography variant="h3" fontWeight="bold" sx={{ color: mode ? "dark" : "#fff", }}>
+            <Typography 
+              variant="h3" 
+              fontWeight="bold" 
+              sx={{ color: mode === "dark" ? "#fff" : "#000" }}
+            >
               AI Chat
             </Typography>
           </>
         )}
       </Box>
 
-      <Typography variant="h6">
+      <Typography variant="h6" sx={{ color: mode === "dark" ? "#fff" : "#000" }}>
         {isEmail
           ? "Paste your email and select a tone to get an improved version"
           : "Ask questions to different AI models with adjustable creativity"}

@@ -170,8 +170,6 @@ TABLESPACE pg_default;
 
 ## 📝 TODO (Frontend)
 - Improve auto-generated chat titles (too similar currently)
-- Fix dark mode: `h3` / `h6` text colors in chat area
-- Fix rewrite email feature (currently erroring)
 - Enhance RAG preview for selected PDFs
 
 ---

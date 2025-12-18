@@ -8,11 +8,13 @@ import { useEffect, useRef } from "react";
 interface ChatMessagesProps {
   messages: Message[];
   isStreaming?: boolean;
+  mode: "light" | "dark" | "system";
 }
 
 export const ChatMessages: React.FC<ChatMessagesProps> = ({
   messages,
   isStreaming = false,
+  mode,
 }) => {
   const theme = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -54,9 +56,9 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
               <Typography
                 variant="body1"
                 sx={{
-                  color: "text.primary",
                   whiteSpace: "pre-wrap",
                   wordBreak: "break-word",
+                  color: mode === "dark" ? "#fff" : "#000",
                 }}
               >
                 {msg.content}
