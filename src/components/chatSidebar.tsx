@@ -19,6 +19,7 @@ import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteDialog from "./shared/DeleteDialog";
 
 interface Chat {
   id: string;
@@ -48,6 +49,15 @@ export default function ChatSidebar({
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+
+  // Delete dialog state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    chatTitle: string;
+  }>({
+    open: false,
+    chatTitle: '',
+  });
 
   // Fetch chats on mount
   useEffect(() => {
@@ -96,30 +106,42 @@ export default function ChatSidebar({
     setSelectedChatId(null);
   };
 
-  const handleDeleteChat = async () => {
-    if (!selectedChatId) return;
-
-    try {
-      const response = await fetch(`/api/chats/${selectedChatId}`, {
-        method: "DELETE",
-        headers: {
-          "x-user-id": getUserId(),
-        },
+  // Functions for delete dialog
+    const handleDeleteClick = (chatTitle: string) => {
+      setDeleteDialog({
+        open: true,
+        chatTitle,
       });
+    };
 
-      if (!response.ok) throw new Error("Failed to delete chat");
+    const getDeleteMessage = () => {
+      return `Are you sure you want to delete "${deleteDialog.chatTitle}"? This cannot be undone.`;
+    };
+  
+    const handleDeleteConfirm = async () => {
+      if (!selectedChatId) return;
 
-      setChats(chats.filter((chat) => chat.id !== selectedChatId));
+      try {
+        const response = await fetch(`/api/chats/${selectedChatId}`, {
+          method: "DELETE",
+          headers: {
+            "x-user-id": getUserId(),
+          },
+        });
 
-      if (currentChatId === selectedChatId) {
-        onNewChat();
+        if (!response.ok) throw new Error("Failed to delete chat");
+
+        setChats(chats.filter((chat) => chat.id !== selectedChatId));
+
+        if (currentChatId === selectedChatId) {
+          onNewChat();
+        }
+      } catch (error) {
+        console.error("Error deleting chat:", error);
+      } finally {
+        handleMenuClose();
       }
-    } catch (error) {
-      console.error("Error deleting chat:", error);
-    } finally {
-      handleMenuClose();
     }
-  };
 
   const handleEditChat = () => {
     if (!selectedChatId) return;
@@ -361,11 +383,24 @@ export default function ChatSidebar({
           <EditIcon fontSize="small" sx={{ mr: 1 }} />
           Rename
         </MenuItem>
-        <MenuItem onClick={handleDeleteChat} sx={{ color: "error.main" }}>
+        <MenuItem onClick={() => {
+          const chat = chats.find((c) => c.id === selectedChatId);
+          if (chat) {
+            handleDeleteClick(chat.title);
+          }
+          handleMenuClose();
+        }} sx={{ color: "error.main" }}>
           <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
           Delete
         </MenuItem>
       </Menu>
+      <DeleteDialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ ...deleteDialog, open: false })}
+        onConfirm={handleDeleteConfirm}
+        fileName={deleteDialog.chatTitle}
+        message={getDeleteMessage()}
+      />
     </Drawer>
   );
 }
