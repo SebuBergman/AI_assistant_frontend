@@ -169,7 +169,6 @@ TABLESPACE pg_default;
 ---
 
 ## 📝 TODO (Frontend)
-- Improve auto-generated chat titles (too similar currently)
 - Enhance RAG preview for selected PDFs
 
 ---
