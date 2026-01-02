@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
-    const userId = request.headers.get("x-user-id") || "anonymous";
+    const userId = request.headers.get("x-user-id") || "default-user";
     const { chatId } = await params;
 
     const chat = await ChatService.getChatById(chatId, userId);
@@ -31,7 +31,7 @@ export async function DELETE(
   { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
-    const userId = request.headers.get("x-user-id") || "anonymous";
+    const userId = request.headers.get("x-user-id") || "default-user";
     const { chatId } = await params;
 
     const deleted = await ChatService.deleteChat(chatId, userId);
@@ -55,7 +55,7 @@ export async function PATCH(
   { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
-    const userId = request.headers.get("x-user-id") || "anonymous";
+    const userId = request.headers.get("x-user-id") || "default-user";
     const { chatId } = await params;
     const { title } = await request.json();
 
