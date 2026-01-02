@@ -5,19 +5,20 @@ export interface Message {
   createdAt: Date;
 }
 
-export interface UploadedFile {
-  id: string;
-  name: string;
-  url: string;
-  uploadedAt: Date;
-  chunksCreated: number;
-}
-
 export interface SavedDocument {
   file_name: string;
-  s3_url: string;
-  uploaded_at: string;
-  timestamp: number;
+  file_path: string;      // S3 URL
+  upload_date: string;    // ISO string or formatted date
+  file_size: number;     // in bytes
+  file_id: string;       // unique identifier for the file
+  chunks?: DocumentChunk[]; // optional array of chunks for preview
+}
+
+export interface DocumentChunk {
+  chunk_id: string;
+  chunk_index: number;
+  page: number;
+  content: string;
 }
 
 export interface RAGOptions {

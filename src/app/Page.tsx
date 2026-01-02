@@ -247,6 +247,7 @@ export default function AIAssistant() {
               // Log RAG metadata if available
               if (json.metadata?.rag_enabled) {
                 console.log('RAG is being used:', json.metadata);
+                console.log('Chunks:', json.metadata.chunks); // Will contain chunk_id, page, etc.
               }
 
               // Update reasoning display (for models that show thinking)
