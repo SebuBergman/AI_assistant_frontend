@@ -60,8 +60,15 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({
         </IconButton>
       </DialogTitle>
       <DialogContent>
-        <DialogContentText sx={{ color: 'text.primary', fontSize: '1rem' }}>
-          {message || `Are you sure you want to delete this ${itemType}?`}
+        <DialogContentText
+          sx={{
+            color: 'text.primary',
+            fontSize: '1rem',
+            whiteSpace: 'pre-line',
+          }}
+        >
+          {message || `Are you sure you want to delete the chat with the title: ${itemType}?
+          This cannot be undone.`}
         </DialogContentText>
         {fileName && !message?.includes(fileName) && (
           <Box 
