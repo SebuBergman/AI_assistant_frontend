@@ -27,8 +27,18 @@ export const deepseekModels = [
 
 export const chatgptModels = [
   {
-    id: "gpt-5",
-    name: "GPT-5",
+    id: "gpt-5.2",
+    name: "GPT-5.2",
+    description: "Best flagship model for coding and agentic tasks across industries.",
+    tool_calling: true,
+    pricing: {
+      input: "$0.00175 / 1K tokens",
+      output: "$0.014 / 1K tokens",
+    }
+  },
+  {
+    id: "gpt-5.1",
+    name: "GPT-5.1",
     description:
       "Best for complex reasoning, detailed explanations, coding, and high-quality creative tasks.",
     tool_calling: true,
@@ -93,10 +103,10 @@ export const chatgptModels = [
     },
   },
   {
-    id: "gpt-4o",
-    name: "GPT-4o",
+    id: "o4-mini-deep-research",
+    name: "GPT-o4 Mini Deep Research",
     description:
-      "High-performance model built for advanced reasoning, coding, and complex creative projects.",
+      "Fast and affordable deep research model - Ideal for tackling complex, multi-step research tasks.",
     tool_calling: true,
     pricing: {
       input: "$0.0025 / 1K tokens",
@@ -146,8 +156,8 @@ export const claudeModels = [
       "Fast and cost-efficient for everyday chat, summarization, and translation tasks.",
     tool_calling: true,
     pricing: {
-      input: "$0. / 1K tokens",
-      output: "$0. / 1K tokens",
+      input: "$0.0008 / 1K tokens",
+      output: "$0.004 / 1K tokens",
     },
   },
 ];
