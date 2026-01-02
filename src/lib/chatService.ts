@@ -20,7 +20,7 @@ export interface Message {
 export class ChatService {
   /**
    * Create a new chat
-   * Generates a title from the first user message
+   * Generates a smart title from the first user message via FastAPI
    */
   static async createChat(userId: string, firstMessage: string): Promise<Chat> {
     const client = await pool.connect();
@@ -29,14 +29,13 @@ export class ChatService {
     try {
       await client.query("BEGIN");
 
-      // Generate title from first message (truncate to 100 chars)
-      const title =
-        firstMessage.slice(0, 100) + (firstMessage.length > 100 ? "..." : "");
+      // Generate a quick fallback title first
+      const fallbackTitle = this.generateFallbackTitle(firstMessage);
 
-      // Insert chat
+      // Insert chat with fallback title
       const chatResult = await client.query(
         "INSERT INTO chats (user_id, title) VALUES ($1, $2) RETURNING *",
-        [userId, title]
+        [userId, fallbackTitle]
       );
 
       const chat = this.mapRowToChat(chatResult.rows[0]);
@@ -52,6 +51,11 @@ export class ChatService {
       // Invalidate cache
       await redis.del(CACHE_KEYS.userChats(userId));
 
+      // Generate better title via FastAPI (don't await - fire and forget)
+      this.generateAndUpdateTitle(chat.id, firstMessage, userId).catch(
+        console.error
+      );
+
       return chat;
     } catch (error) {
       await client.query("ROLLBACK");
@@ -59,6 +63,79 @@ export class ChatService {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Generate a smart title using FastAPI and update the chat
+   */
+  private static async generateAndUpdateTitle(
+    chatId: string,
+    message: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      // Call your FastAPI backend
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/title`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: message,
+          chat_id: chatId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const title = data.title;
+
+      // Validate title
+      if (!title || title.length > 100) {
+        console.warn("Generated title invalid, keeping fallback");
+        return;
+      }
+
+      // Update chat with generated title
+      const client = await pool.connect();
+      const redis = getRedis();
+
+      try {
+        await client.query("UPDATE chats SET title = $1 WHERE id = $2", [
+          title,
+          chatId,
+        ]);
+
+        // Invalidate cache so sidebar shows new title
+        await redis.del(CACHE_KEYS.userChats(userId));
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error("Failed to generate/update chat title:", error);
+      // Fail silently - fallback title is already in place
+    }
+  }
+
+  /**
+   * Generate a fallback title from the message
+   */
+  private static generateFallbackTitle(message: string): string {
+    let title = message.trim().replace(/\s+/g, " ");
+
+    // Try to get first sentence
+    const firstSentence = title.match(/^[^.!?]+[.!?]/)?.[0] || title;
+    title = firstSentence.length < title.length ? firstSentence : title;
+
+    // Truncate to 60 characters
+    if (title.length > 60) {
+      title = title.substring(0, 57) + "...";
+    }
+
+    return title;
   }
 
   /**
