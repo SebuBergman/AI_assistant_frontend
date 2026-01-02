@@ -13,6 +13,7 @@ import {
   Menu,
   MenuItem,
   useTheme,
+  Collapse,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -20,6 +21,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteDialog from "./shared/DeleteDialog";
+import { getUserId } from "@/lib/auth";
 
 interface Chat {
   id: string;
@@ -43,6 +45,8 @@ export default function ChatSidebar({
   refreshTrigger,
 }: ChatSidebarProps) {
   const theme = useTheme();
+  const userId = getUserId();
+  
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -53,11 +57,14 @@ export default function ChatSidebar({
   // Delete dialog state
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
+    chatId: string | null;
     chatTitle: string;
   }>({
     open: false,
+    chatId: null,
     chatTitle: '',
   });
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
 
   // Fetch chats on mount
   useEffect(() => {
@@ -69,7 +76,7 @@ export default function ChatSidebar({
       setLoading(true);
       const response = await fetch("/api/chats", {
         headers: {
-          "x-user-id": getUserId(),
+          "x-user-id": userId,
         },
       });
 
@@ -107,41 +114,52 @@ export default function ChatSidebar({
   };
 
   // Functions for delete dialog
-    const handleDeleteClick = (chatTitle: string) => {
+    const handleDeleteClick = (chatId: string, chatTitle: string) => {
       setDeleteDialog({
         open: true,
+        chatId,
         chatTitle,
       });
     };
 
     const getDeleteMessage = () => {
-      return `Are you sure you want to delete "${deleteDialog.chatTitle}"? This cannot be undone.`;
+      return `Are you sure you want to delete this chat with the title: "${deleteDialog.chatTitle}"?\nThis cannot be undone.`;
     };
   
     const handleDeleteConfirm = async () => {
-      if (!selectedChatId) return;
+      if (!deleteDialog.chatId) return;
+
+      const chatId = deleteDialog.chatId;
 
       try {
-        const response = await fetch(`/api/chats/${selectedChatId}`, {
+        // start animation
+        setDeletingChatId(chatId);
+
+        const response = await fetch(`/api/chats/${chatId}`, {
           method: "DELETE",
           headers: {
-            "x-user-id": getUserId(),
+            "x-user-id": userId,
           },
         });
 
         if (!response.ok) throw new Error("Failed to delete chat");
 
-        setChats(chats.filter((chat) => chat.id !== selectedChatId));
+        // wait for animation to finish
+        setTimeout(() => {
+          setChats(chats => chats.filter(chat => chat.id !== chatId));
+          setDeletingChatId(null);
+        }, 300); // match animation duration
 
-        if (currentChatId === selectedChatId) {
+        if (currentChatId === chatId) {
           onNewChat();
         }
       } catch (error) {
         console.error("Error deleting chat:", error);
+        setDeletingChatId(null);
       } finally {
-        handleMenuClose();
+        setDeleteDialog({ open: false, chatId: null, chatTitle: '' });
       }
-    }
+    };
 
   const handleEditChat = () => {
     if (!selectedChatId) return;
@@ -162,7 +180,7 @@ export default function ChatSidebar({
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": getUserId(),
+          "x-user-id": userId,
         },
         body: JSON.stringify({ title: editTitle }),
       });
@@ -201,15 +219,6 @@ export default function ChatSidebar({
     if (diffDays < 7) return `${diffDays}d ago`;
 
     return date.toLocaleDateString();
-  };
-
-  const getUserId = () => {
-    let userId = process.env.USER_ID || "default-user";
-    if (!userId) {
-      userId = process.env.USER_ID || "default-user";
-      localStorage.setItem("userId", userId);
-    }
-    return userId;
   };
 
   return (
@@ -281,86 +290,92 @@ export default function ChatSidebar({
           ) : (
             <List sx={{ py: 0 }}>
               {chats.map((chat) => (
-                <ListItem
+                <Collapse
                   key={chat.id}
-                  disablePadding
-                  secondaryAction={
-                    editingChatId !== chat.id && (
-                      <IconButton
-                        edge="end"
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, chat.id)}
-                        sx={{ color: "text.secondary" }}
-                      >
-                        <MoreVertIcon fontSize="small" />
-                      </IconButton>
-                    )
-                  }
-                  sx={{ mb: 0.5 }}
+                  in={deletingChatId !== chat.id}
+                  timeout={300}
+                  unmountOnExit
                 >
-                  {editingChatId === chat.id ? (
-                    <Box sx={{ width: "100%", px: 1 }}>
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveEdit(chat.id);
-                          if (e.key === "Escape") handleCancelEdit();
-                        }}
-                        onBlur={() => handleSaveEdit(chat.id)}
-                        autoFocus
-                        style={{
-                          width: "100%",
-                          padding: "8px",
-                          background:
-                            theme.palette.mode === "dark"
-                              ? "rgba(255,255,255,0.1)"
-                              : "rgba(0,0,0,0.05)",
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: "4px",
-                          color: theme.palette.text.primary,
-                          fontSize: "14px",
-                        }}
-                      />
-                    </Box>
-                  ) : (
-                    <ListItemButton
-                      selected={currentChatId === chat.id}
-                      onClick={() => handleChatClick(chat.id)}
-                      sx={{
-                        borderRadius: 1,
-                        "&.Mui-selected": {
-                          bgcolor: "action.selected",
+                  <ListItem
+                    disablePadding
+                    secondaryAction={
+                      editingChatId !== chat.id && (
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          onClick={(e) => handleMenuOpen(e, chat.id)}
+                          sx={{ color: "text.secondary" }}
+                        >
+                          <MoreVertIcon fontSize="small" />
+                        </IconButton>
+                      )
+                    }
+                    sx={{ mb: 0.5 }}
+                  >
+                    {editingChatId === chat.id ? (
+                      <Box sx={{ width: "100%", px: 1 }}>
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEdit(chat.id);
+                            if (e.key === "Escape") handleCancelEdit();
+                          }}
+                          onBlur={() => handleSaveEdit(chat.id)}
+                          autoFocus
+                          style={{
+                            width: "100%",
+                            padding: "8px",
+                            background:
+                              theme.palette.mode === "dark"
+                                ? "rgba(255,255,255,0.1)"
+                                : "rgba(0,0,0,0.05)",
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: "4px",
+                            color: theme.palette.text.primary,
+                            fontSize: "14px",
+                          }}
+                        />
+                      </Box>
+                    ) : (
+                      <ListItemButton
+                        selected={currentChatId === chat.id}
+                        onClick={() => handleChatClick(chat.id)}
+                        sx={{
+                          borderRadius: 1,
+                          "&.Mui-selected": {
+                            bgcolor: "action.selected",
+                            "&:hover": {
+                              bgcolor: "action.hover",
+                            },
+                          },
                           "&:hover": {
                             bgcolor: "action.hover",
                           },
-                        },
-                        "&:hover": {
-                          bgcolor: "action.hover",
-                        },
-                      }}
-                    >
-                      <ListItemText
-                        primary={chat.title}
-                        secondary={formatDate(chat.updatedAt)}
-                        primaryTypographyProps={{
-                          noWrap: true,
-                          sx: {
-                            color: "text.primary",
-                            fontSize: "0.875rem",
-                          },
                         }}
-                        secondaryTypographyProps={{
-                          sx: {
-                            color: "text.secondary",
-                            fontSize: "0.75rem",
-                          },
-                        }}
-                      />
-                    </ListItemButton>
-                  )}
-                </ListItem>
+                      >
+                        <ListItemText
+                          primary={chat.title}
+                          secondary={formatDate(chat.updatedAt)}
+                          primaryTypographyProps={{
+                            noWrap: true,
+                            sx: {
+                              color: "text.primary",
+                              fontSize: "0.875rem",
+                            },
+                          }}
+                          secondaryTypographyProps={{
+                            sx: {
+                              color: "text.secondary",
+                              fontSize: "0.75rem",
+                            },
+                          }}
+                        />
+                      </ListItemButton>
+                    )}
+                  </ListItem>
+                </Collapse>
               ))}
             </List>
           )}
@@ -383,13 +398,16 @@ export default function ChatSidebar({
           <EditIcon fontSize="small" sx={{ mr: 1 }} />
           Rename
         </MenuItem>
-        <MenuItem onClick={() => {
-          const chat = chats.find((c) => c.id === selectedChatId);
-          if (chat) {
-            handleDeleteClick(chat.title);
-          }
-          handleMenuClose();
-        }} sx={{ color: "error.main" }}>
+        <MenuItem
+          onClick={() => {
+            const chat = chats.find((c) => c.id === selectedChatId);
+            if (chat) {
+              handleDeleteClick(chat.id, chat.title);
+            }
+            handleMenuClose();
+          }}
+          sx={{ color: "error.main" }}
+        >
           <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
           Delete
         </MenuItem>
