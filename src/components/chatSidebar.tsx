@@ -49,7 +49,8 @@ export default function ChatSidebar({
   
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [contextMenuAnchorEl, setContextMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [headerMenuAnchorEl, setHeaderMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -59,10 +60,12 @@ export default function ChatSidebar({
     open: boolean;
     chatId: string | null;
     chatTitle: string;
+    type: string;
   }>({
     open: false,
     chatId: null,
     chatTitle: '',
+    type: 'single' // 'single' or 'all',
   });
   const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
 
@@ -104,35 +107,95 @@ export default function ChatSidebar({
     chatId: string
   ) => {
     event.stopPropagation();
-    setAnchorEl(event.currentTarget);
+    setContextMenuAnchorEl(event.currentTarget);
     setSelectedChatId(chatId);
   };
 
   const handleMenuClose = () => {
-    setAnchorEl(null);
+    setContextMenuAnchorEl(null);
     setSelectedChatId(null);
   };
 
-  // Functions for delete dialog
-    const handleDeleteClick = (chatId: string, chatTitle: string) => {
-      setDeleteDialog({
+  // Handlers for header menu
+  const handleHeaderMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setHeaderMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleHeaderMenuClose = () => {
+    setHeaderMenuAnchorEl(null);
+  };
+
+  const handleSort = () => {
+    console.log("Sort clicked")
+    handleHeaderMenuClose();
+  };
+
+  const handleDeleteAllChats = () => {
+    // Implement delete all chats functionality if needed
+    setDeleteDialog({
         open: true,
-        chatId,
-        chatTitle,
+        chatId: null,
+        chatTitle: 'All chats',
+        type: 'all',
       });
-    };
+    handleHeaderMenuClose();
+  }
 
-    const getDeleteMessage = () => {
-      return `Are you sure you want to delete this chat with the title: "${deleteDialog.chatTitle}"?\nThis cannot be undone.`;
-    };
-  
-    const handleDeleteConfirm = async () => {
-      if (!deleteDialog.chatId) return;
+  // Combined delete functions
+  const handleDeleteClick = (chatId: string, chatTitle: string, type: 'single' | 'all' = 'single') => {
+    setDeleteDialog({
+      open: true,
+      chatId,
+      chatTitle,
+      type,
+    });
+  };
 
-      const chatId = deleteDialog.chatId;
+  const getDeleteMessage = () => {
+    if (deleteDialog.type === 'all') {
+      return `Are you sure you want to delete ALL chats?\nThis action cannot be undone and will delete ${chats.length} conversation${chats.length !== 1 ? 's' : ''}.`;
+    }
+    return `Are you sure you want to delete this chat with the title: "${deleteDialog.chatTitle}"?\nThis cannot be undone.`;
+  };
 
-      try {
-        // start animation
+  const handleDeleteConfirm = async () => {
+    try {
+      if (deleteDialog.type === 'all') {
+        // Handle delete all logic
+        console.log('Deleting all chats');
+        
+        // Start animation for all chats
+        const allChatIds = chats.map(chat => chat.id);
+        setDeletingChatId('all'); // or you could track multiple IDs
+        
+        // Delete all chats via API
+        const response = await fetch('/api/chats', {
+          method: "DELETE",
+          headers: {
+            "x-user-id": userId,
+          },
+        });
+
+        if (!response.ok) throw new Error("Failed to delete all chats");
+
+        // Wait for animation to finish
+        setTimeout(() => {
+          setChats([]);
+          setDeletingChatId(null);
+        }, 300);
+        
+        // If current chat is among deleted ones, start new chat
+        if (chats.some(chat => chat.id === currentChatId)) {
+          onNewChat();
+        }
+        
+      } else {
+        // Handle single chat deletion (your existing logic)
+        if (!deleteDialog.chatId) return;
+
+        const chatId = deleteDialog.chatId;
+
+        // Start animation
         setDeletingChatId(chatId);
 
         const response = await fetch(`/api/chats/${chatId}`, {
@@ -144,7 +207,7 @@ export default function ChatSidebar({
 
         if (!response.ok) throw new Error("Failed to delete chat");
 
-        // wait for animation to finish
+        // Wait for animation to finish
         setTimeout(() => {
           setChats(chats => chats.filter(chat => chat.id !== chatId));
           setDeletingChatId(null);
@@ -153,13 +216,14 @@ export default function ChatSidebar({
         if (currentChatId === chatId) {
           onNewChat();
         }
-      } catch (error) {
-        console.error("Error deleting chat:", error);
-        setDeletingChatId(null);
-      } finally {
-        setDeleteDialog({ open: false, chatId: null, chatTitle: '' });
       }
-    };
+    } catch (error) {
+      console.error("Error deleting:", error);
+      setDeletingChatId(null);
+    } finally {
+      setDeleteDialog({ open: false, chatId: null, chatTitle: '', type: 'single' });
+    }
+  };
 
   const handleEditChat = () => {
     if (!selectedChatId) return;
@@ -258,17 +322,26 @@ export default function ChatSidebar({
           New Chat
         </Button>
 
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
         <Typography
           variant="caption"
           sx={{
             px: 1,
-            mb: 1,
             color: "text.secondary",
             fontWeight: 600,
           }}
         >
           CHAT HISTORY
         </Typography>
+        <IconButton
+          edge="end"
+          size="small"
+          onClick={(e) => handleHeaderMenuOpen(e)}
+          sx={{ color: "text.secondary" }}
+        >
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+        </Box>
 
         <Box sx={{ flex: 1, overflow: "auto" }}>
           {loading ? (
@@ -384,8 +457,8 @@ export default function ChatSidebar({
 
       {/* Context Menu */}
       <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
+        anchorEl={contextMenuAnchorEl}
+        open={Boolean(contextMenuAnchorEl)}
         onClose={handleMenuClose}
         PaperProps={{
           sx: {
@@ -412,6 +485,30 @@ export default function ChatSidebar({
           Delete
         </MenuItem>
       </Menu>
+
+      {/* Header Menu */}
+      <Menu
+        anchorEl={headerMenuAnchorEl}
+        open={Boolean(headerMenuAnchorEl)}
+        onClose={handleHeaderMenuClose}
+        PaperProps={{
+          sx: {
+            bgcolor: "background.paper",
+            color: "text.primary",
+          },
+        }}
+      >
+        <MenuItem onClick={handleSort}>
+          <AddIcon fontSize="small" sx={{ mr: 1 }} />
+          Sort
+        </MenuItem>
+        <MenuItem onClick={handleDeleteAllChats} sx={{ color: "error.main" }}>
+          <AddIcon fontSize="small" sx={{ mr: 1 }} />
+          Delete All
+        </MenuItem>
+      </Menu>
+
+      {/* Delete Confirmation Dialog */}
       <DeleteDialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ ...deleteDialog, open: false })}

@@ -224,15 +224,16 @@ export const DocumentsDialog: React.FC<DocumentsDialogProps> = ({
             </>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2, alignItems: 'center' }}>
           {documents.length > 0 && (
             <Button
               onClick={handleDeleteAllClick}
               color="error"
               startIcon={<DeleteIcon />}
-              sx={{ mr: 'auto' }}
+              variant="outlined"
+              sx={{ textAlign: 'center' }}
             >
-              Delete All
+              <Typography variant="body1">Delete All</Typography>
             </Button>
           )}
           <Button onClick={onClose}>Close</Button>

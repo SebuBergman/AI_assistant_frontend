@@ -44,3 +44,22 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const userId = request.headers.get('x-user-id') || "default-user";
+
+    const deletedCount = await ChatService.deleteAllChats(userId);
+
+    return NextResponse.json({
+      success: true,
+      deletedCount,
+    });
+  } catch (error) {
+    console.error('Error deleting all chats:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete all chats' },
+      { status: 500 }
+    );
+  }
+}
