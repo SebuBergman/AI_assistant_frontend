@@ -1,21 +1,6 @@
 // lib/chatService.ts
+import { Chat, Message, Reference } from '@/app/types';
 import { pool, getRedis, CACHE_KEYS, CACHE_TTL } from './db';
-
-export interface Chat {
-  id: string;
-  userId: string;
-  title: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Message {
-  id: string;
-  chatId: string;
-  role: 'user' | 'assistant';
-  content: string;
-  createdAt: Date;
-}
 
 export class ChatService {
   /**
@@ -254,7 +239,8 @@ export class ChatService {
   static async addMessage(
     chatId: string,
     role: "user" | "assistant",
-    content: string
+    content: string,
+    references?: any[]
   ): Promise<Message> {
     const client = await pool.connect();
     const redis = getRedis();
@@ -262,10 +248,10 @@ export class ChatService {
     try {
       await client.query("BEGIN");
 
-      // Insert message
+      // Insert message with references
       const result = await client.query(
-        "INSERT INTO messages (chat_id, role, content) VALUES ($1, $2, $3) RETURNING *",
-        [chatId, role, content]
+        "INSERT INTO messages (chat_id, role, content, rag_references) VALUES ($1, $2, $3, $4) RETURNING *",
+        [chatId, role, content, references ? JSON.stringify(references) : null]
       );
 
       // Update chat timestamp
@@ -307,6 +293,38 @@ export class ChatService {
     await redis.del(CACHE_KEYS.userChats(userId));
 
     return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  /**
+   * Delete all chats for a user
+   */
+  static async deleteAllChats(userId: string): Promise<number> {
+    const redis = getRedis();
+
+    // First, get all chat IDs for the user to clear their caches
+    const chatsResult = await pool.query(
+      "SELECT id FROM chats WHERE user_id = $1",
+      [userId]
+    );
+
+    // Delete all chats from database
+    const result = await pool.query(
+      "DELETE FROM chats WHERE user_id = $1",
+      [userId]
+    );
+
+    // Clear caches for each chat
+    const cachePromises = chatsResult.rows.flatMap((chat) => [
+      redis.del(CACHE_KEYS.chatMessages(chat.id)),
+      redis.del(CACHE_KEYS.chatMeta(chat.id))
+    ]);
+    
+    // Clear user's chat list cache
+    cachePromises.push(redis.del(CACHE_KEYS.userChats(userId)));
+    
+    await Promise.all(cachePromises);
+
+    return result.rowCount || 0;
   }
 
   /**
@@ -354,6 +372,7 @@ export class ChatService {
     role: 'user' | 'assistant';
     content: string;
     created_at: string | number | Date;
+    references?: Reference[];
   }): Message {
     return {
       id: row.id,
@@ -361,6 +380,9 @@ export class ChatService {
       role: row.role,
       content: row.content,
       createdAt: new Date(row.created_at),
+      references: Array.isArray(row.references)
+      ? (row.references as Reference[])
+      : undefined,
     };
   }
 

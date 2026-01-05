@@ -15,7 +15,7 @@ import { useColorScheme, useTheme } from '@mui/material/styles';
 import { chatgptModels, claudeModels, deepseekModels, tones } from '@/components/data';
 import ChatSidebar from '@/components/chatSidebar';
 import "highlight.js/styles/github.css";
-import { Message, SavedDocument } from "@/app/types";
+import { Message, Reference, SavedDocument } from "@/app/types";
 import TopBar from '@/components/shared/TopBar';
 import { ChatMessages } from '@/components/chat/ChatMessages';
 import WelcomeMessage from '@/components/shared/WelcomeMessage';
@@ -211,6 +211,7 @@ export default function AIAssistant() {
         const decoder = new TextDecoder();
         let buffer = "";
         let finalAIText = "";
+        let ragReferences: Reference[] = [];
         let streamingAIMessageId = (Date.now() + 1).toString();
 
         // Add empty AI message that will be updated during streaming
@@ -244,10 +245,12 @@ export default function AIAssistant() {
               }
               if (json.done) break;
 
-              // Log RAG metadata if available
+              // Capture RAG metadata and references
               if (json.metadata?.rag_enabled) {
                 console.log('RAG is being used:', json.metadata);
-                console.log('Chunks:', json.metadata.chunks); // Will contain chunk_id, page, etc.
+                if (json.metadata.references) {
+                  ragReferences = json.metadata.references;
+                }
               }
 
               // Update reasoning display (for models that show thinking)
@@ -261,7 +264,11 @@ export default function AIAssistant() {
                 setMessages(prev => 
                   prev.map(msg => 
                     msg.id === streamingAIMessageId 
-                      ? { ...msg, content: finalAIText }
+                      ? { 
+                          ...msg, 
+                          content: finalAIText,
+                          references: ragReferences.length > 0 ? ragReferences : undefined // ✅ Add references
+                        }
                       : msg
                   )
                 );
@@ -351,6 +358,7 @@ export default function AIAssistant() {
       const decoder = new TextDecoder();
       let buffer = "";
       let finalAIText = "";
+      let ragReferences: Reference[] = []; // ✅ Store references
       let streamingAIMessageId = (Date.now() + 1).toString();
 
       // Add empty AI message that will be updated during streaming
@@ -382,8 +390,12 @@ export default function AIAssistant() {
             }
             if (json.done) break;
 
+            // ✅ Capture RAG metadata
             if (json.metadata?.rag_enabled) {
               console.log('RAG is being used:', json.metadata);
+              if (json.metadata.references) {
+                ragReferences = json.metadata.references;
+              }
             }
 
             if (json.type === "reasoning") {
@@ -396,7 +408,11 @@ export default function AIAssistant() {
               setMessages(prev => 
                 prev.map(msg => 
                   msg.id === streamingAIMessageId 
-                    ? { ...msg, content: finalAIText }
+                    ? { 
+                        ...msg, 
+                        content: finalAIText,
+                        references: ragReferences.length > 0 ? ragReferences : undefined
+                      }
                     : msg
                 )
               );
@@ -412,7 +428,11 @@ export default function AIAssistant() {
         const aiRes = await fetch(`/api/chats/${chatId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role: "assistant", content: finalAIText }),
+          body: JSON.stringify({
+            role: "assistant",
+            content: finalAIText,
+            references: ragReferences.length > 0 ? ragReferences : undefined
+          }),
         });
 
         setRefreshSidebar((prev) => prev + 1);

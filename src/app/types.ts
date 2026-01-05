@@ -1,8 +1,24 @@
 export interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  chatId?: string;
+  role: "user" | "assistant";
   content: string;
   createdAt: Date;
+  references?: Reference[];
+}
+
+export interface Reference {
+  file_name: string;
+  content: string;
+  score: string;
+}
+
+export interface Chat {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface SavedDocument {
