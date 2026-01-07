@@ -10,6 +10,22 @@ export const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
+// Verify connection on startup
+pool.on('connect', () => {
+  console.log('✅ Supabase/PostgreSQL connected successfully');
+});
+
+pool.on('error', (err) => {
+  console.error('❌ Unexpected database error:', err);
+});
+
+// Optional: Test connection immediately
+/*
+pool.query('SELECT NOW()')
+  .then(() => console.log('✅ Database connection verified'))
+  .catch((err) => console.error('❌ Database connection failed:', err.message));
+*/
+
 // Redis client for caching
 let redis: Redis | null = null;
 
@@ -27,9 +43,9 @@ export const getRedis = () => {
       },
     });
 
-    redis.on("connect", () => console.log("Redis CONNECTED"));
-    redis.on("ready", () => console.log("Redis READY"));
-    redis.on("error", (err) => console.error("Redis ERROR:", err));
+    redis.on("connect", () => console.log("✅ Redis CONNECTED successfully"));
+    redis.on("ready", () => console.log("✅ Redis READY - Connection fully established"));
+    redis.on("error", (err) => console.error("❌ Redis ERROR:", err));
   }
   return redis;
 };

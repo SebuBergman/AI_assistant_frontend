@@ -100,7 +100,9 @@ export default function TopBar({
                 <Storage />
               </IconButton>
             </Tooltip>
-
+          </>
+        )}
+          <Box>
             {/* Temporary Chat Toggle */}
             <Tooltip
               title={
@@ -126,15 +128,32 @@ export default function TopBar({
                 <FlashOn />
               </IconButton>
             </Tooltip>
-          </>
-        )}
 
-        {/* Dark Mode Toggle */}
-        <IconButton
-          onClick={() => setMode(mode === "dark" ? "light" : "dark")}
-        >
-          {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
-        </IconButton>
+            {/* Dark Mode Toggle */}
+            <Tooltip
+              title={
+                mode === "light"
+                  ? "Toggle Dark mode"
+                  : "Toggle Light mode"
+              }
+            >
+              <IconButton
+                onClick={() => setMode(mode === "dark" ? "light" : "dark")}
+                sx={{
+                  ml: 1,
+                  bgcolor: mode === "light" ? "#FFB74D" : "#424242",
+                  color: mode === "light" ? "#1A1A1A" : "#FFF",
+                  "&:hover": {
+                    bgcolor: mode === "light" ? "#FFA726" : "#616161",
+                    transform: "scale(1.05)",
+                  },
+                  transition: "all 0.2s",
+                }}
+              >
+                {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
+              </IconButton>
+            </Tooltip>
+          </Box>
       </Toolbar>
     </AppBar>
   );

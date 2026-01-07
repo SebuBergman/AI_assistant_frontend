@@ -1,8 +1,5 @@
+import { SavedDocument } from "@/app/types";
 import { Box, FormControl, FormControlLabel, InputLabel, MenuItem, Select, Switch, TextField, Typography } from "@mui/material";
-
-interface UploadedFile {
-  file_name: string;
-}
 
 interface RagControlsProps {
   selectedDocument: string;
@@ -11,7 +8,7 @@ interface RagControlsProps {
   onKeywordChange: (keyword: string) => void;
   useCached: boolean;
   onCacheChange: (cached: boolean) => void;
-  uploadedFiles: UploadedFile[];
+  uploadedFiles: SavedDocument[];
 }
 
 export const RagControls = ({
@@ -38,8 +35,8 @@ export const RagControls = ({
             <em>All Documents</em>
           </MenuItem>
           {uploadedFiles.map((doc) => (
-            <MenuItem key={doc.file_name} value={doc.file_name}>
-              {doc.file_name}
+            <MenuItem key={doc.file_id} value={doc.file_name}>
+              {doc.file_name} ({(doc.file_size || 0) / 1024} KB, {new Date(doc.upload_date).toLocaleDateString()})
             </MenuItem>
           ))}
         </Select>

@@ -1,23 +1,40 @@
 export interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  chatId?: string;
+  role: "user" | "assistant";
   content: string;
   createdAt: Date;
+  rag_references?: Reference[];
 }
 
-export interface UploadedFile {
+export interface Reference {
+  file_name: string;
+  content: string;
+  score: string;
+}
+
+export interface Chat {
   id: string;
-  name: string;
-  url: string;
-  uploadedAt: Date;
-  chunksCreated: number;
+  userId: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface SavedDocument {
   file_name: string;
-  s3_url: string;
-  uploaded_at: string;
-  timestamp: number;
+  file_path: string;      // S3 URL
+  upload_date: string;    // ISO string or formatted date
+  file_size: number;     // in bytes
+  file_id: string;       // unique identifier for the file
+  chunks?: DocumentChunk[]; // optional array of chunks for preview
+}
+
+export interface DocumentChunk {
+  chunk_id: string;
+  chunk_index: number;
+  page: number;
+  content: string;
 }
 
 export interface RAGOptions {

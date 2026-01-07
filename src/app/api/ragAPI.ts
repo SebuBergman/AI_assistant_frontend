@@ -21,15 +21,23 @@ export const uploadPDF = async (file: File) => {
   }
 };
 
-export const fetchSavedDocuments = async (): Promise<SavedDocument[]> => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/fetch_pdfs`);
-    return response.data.pdfs || [];
-  } catch (error) {
-    console.error('Error fetching documents:', error);
-    return [];
-  }
-};
+export async function fetchSavedDocuments(): Promise<SavedDocument[]> {
+  const res = await fetch(`${API_BASE_URL}/fetch_documents`);
+  console.log("Fetch documents response:", res);
+  if (!res.ok) throw new Error("Failed to fetch documents");
+
+  const data = await res.json();
+
+  // Map Milvus response to front-end type
+  return data.documents.map((doc: any) => ({
+    file_name: doc.file_name,
+    file_path: doc.file_path || doc.source, // S3 URL
+    upload_date: doc.upload_date,
+    file_size: doc.file_size,
+    file_id: doc.file_id,
+    chunks: doc.chunks || [], // Now includes chunk previews
+  }));
+}
 
 export const deleteDocument = async (fileName: string) => {
   try {

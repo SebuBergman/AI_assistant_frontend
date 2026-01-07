@@ -127,6 +127,7 @@ create table public.messages (
   chat_id uuid not null,
   role character varying(50) not null,
   content text not null,
+  rag_references jsonb null,
   created_at timestamp with time zone null default now(),
   constraint messages_pkey primary key (id),
   constraint messages_chat_id_fkey 
@@ -136,6 +137,28 @@ create table public.messages (
 create index IF not exists idx_chat_messages 
 on public.messages using btree (chat_id, created_at) 
 TABLESPACE pg_default;
+
+alter table public.messages
+add constraint messages_role_check
+check (role in ('user', 'assistant'));
+
+create index if not exists idx_messages_rag_references
+on public.messages
+using gin (rag_references)
+where rag_references is not null;
+
+create or replace function update_updated_at_column()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger trigger_update_chats_updated_at
+before update on public.chats
+for each row
+execute function update_updated_at_column();
 ```
 
 ### What these schemas support
@@ -168,11 +191,7 @@ TABLESPACE pg_default;
 
 ---
 
-## 📝 TODO (Frontend)
-- Improve auto-generated chat titles (too similar currently)
-- Fix dark mode: `h3` / `h6` text colors in chat area
-- Fix rewrite email feature (currently erroring)
-- Enhance RAG preview for selected PDFs
+## 📝 TODO
 
 ---
 

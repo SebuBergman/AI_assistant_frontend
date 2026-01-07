@@ -9,6 +9,7 @@ export async function GET(
   try {
     const { chatId } = await params;
 
+    console.log("Fetching messages for chatId:", chatId);
     const messages = await ChatService.getChatMessages(chatId);
 
     return NextResponse.json({ messages });
@@ -27,7 +28,7 @@ export async function POST(
 ) {
   try {
     const { chatId } = await params;
-    const { role, content } = await request.json();
+    const { role, content, references } = await request.json();
 
     if (!role || !content || !["user", "assistant"].includes(role)) {
       return NextResponse.json(
@@ -36,7 +37,7 @@ export async function POST(
       );
     }
 
-    const message = await ChatService.addMessage(chatId, role, content);
+    const message = await ChatService.addMessage(chatId, role, content, references);
 
     return NextResponse.json({ message }, { status: 201 });
   } catch (error) {

@@ -1,26 +1,11 @@
 // lib/chatService.ts
+import { Chat, Message, Reference } from '@/app/types';
 import { pool, getRedis, CACHE_KEYS, CACHE_TTL } from './db';
-
-export interface Chat {
-  id: string;
-  userId: string;
-  title: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Message {
-  id: string;
-  chatId: string;
-  role: 'user' | 'assistant';
-  content: string;
-  createdAt: Date;
-}
 
 export class ChatService {
   /**
    * Create a new chat
-   * Generates a title from the first user message
+   * Generates a smart title from the first user message via FastAPI
    */
   static async createChat(userId: string, firstMessage: string): Promise<Chat> {
     const client = await pool.connect();
@@ -29,14 +14,13 @@ export class ChatService {
     try {
       await client.query("BEGIN");
 
-      // Generate title from first message (truncate to 100 chars)
-      const title =
-        firstMessage.slice(0, 100) + (firstMessage.length > 100 ? "..." : "");
+      // Generate a quick fallback title first
+      const fallbackTitle = this.generateFallbackTitle(firstMessage);
 
-      // Insert chat
+      // Insert chat with fallback title
       const chatResult = await client.query(
         "INSERT INTO chats (user_id, title) VALUES ($1, $2) RETURNING *",
-        [userId, title]
+        [userId, fallbackTitle]
       );
 
       const chat = this.mapRowToChat(chatResult.rows[0]);
@@ -52,6 +36,11 @@ export class ChatService {
       // Invalidate cache
       await redis.del(CACHE_KEYS.userChats(userId));
 
+      // Generate better title via FastAPI (don't await - fire and forget)
+      this.generateAndUpdateTitle(chat.id, firstMessage, userId).catch(
+        console.error
+      );
+
       return chat;
     } catch (error) {
       await client.query("ROLLBACK");
@@ -59,6 +48,79 @@ export class ChatService {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Generate a smart title using FastAPI and update the chat
+   */
+  private static async generateAndUpdateTitle(
+    chatId: string,
+    message: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      // Call your FastAPI backend
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/title`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: message,
+          chat_id: chatId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const title = data.title;
+
+      // Validate title
+      if (!title || title.length > 100) {
+        console.warn("Generated title invalid, keeping fallback");
+        return;
+      }
+
+      // Update chat with generated title
+      const client = await pool.connect();
+      const redis = getRedis();
+
+      try {
+        await client.query("UPDATE chats SET title = $1 WHERE id = $2", [
+          title,
+          chatId,
+        ]);
+
+        // Invalidate cache so sidebar shows new title
+        await redis.del(CACHE_KEYS.userChats(userId));
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error("Failed to generate/update chat title:", error);
+      // Fail silently - fallback title is already in place
+    }
+  }
+
+  /**
+   * Generate a fallback title from the message
+   */
+  private static generateFallbackTitle(message: string): string {
+    let title = message.trim().replace(/\s+/g, " ");
+
+    // Try to get first sentence
+    const firstSentence = title.match(/^[^.!?]+[.!?]/)?.[0] || title;
+    title = firstSentence.length < title.length ? firstSentence : title;
+
+    // Truncate to 60 characters
+    if (title.length > 60) {
+      title = title.substring(0, 57) + "...";
+    }
+
+    return title;
   }
 
   /**
@@ -142,7 +204,6 @@ export class ChatService {
   static async getChatMessages(chatId: string): Promise<Message[]> {
     const redis = getRedis();
     const cacheKey = CACHE_KEYS.chatMessages(chatId);
-
     // Try cache
     try {
       const cached = await redis.get(cacheKey);
@@ -168,6 +229,7 @@ export class ChatService {
       console.error("Redis cache error:", error);
     }
 
+
     return messages;
   }
 
@@ -177,7 +239,8 @@ export class ChatService {
   static async addMessage(
     chatId: string,
     role: "user" | "assistant",
-    content: string
+    content: string,
+    references?: any[]
   ): Promise<Message> {
     const client = await pool.connect();
     const redis = getRedis();
@@ -185,10 +248,10 @@ export class ChatService {
     try {
       await client.query("BEGIN");
 
-      // Insert message
+      // Insert message with references
       const result = await client.query(
-        "INSERT INTO messages (chat_id, role, content) VALUES ($1, $2, $3) RETURNING *",
-        [chatId, role, content]
+        "INSERT INTO messages (chat_id, role, content, rag_references) VALUES ($1, $2, $3, $4) RETURNING *",
+        [chatId, role, content, references ? JSON.stringify(references) : null]
       );
 
       // Update chat timestamp
@@ -230,6 +293,38 @@ export class ChatService {
     await redis.del(CACHE_KEYS.userChats(userId));
 
     return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  /**
+   * Delete all chats for a user
+   */
+  static async deleteAllChats(userId: string): Promise<number> {
+    const redis = getRedis();
+
+    // First, get all chat IDs for the user to clear their caches
+    const chatsResult = await pool.query(
+      "SELECT id FROM chats WHERE user_id = $1",
+      [userId]
+    );
+
+    // Delete all chats from database
+    const result = await pool.query(
+      "DELETE FROM chats WHERE user_id = $1",
+      [userId]
+    );
+
+    // Clear caches for each chat
+    const cachePromises = chatsResult.rows.flatMap((chat) => [
+      redis.del(CACHE_KEYS.chatMessages(chat.id)),
+      redis.del(CACHE_KEYS.chatMeta(chat.id))
+    ]);
+    
+    // Clear user's chat list cache
+    cachePromises.push(redis.del(CACHE_KEYS.userChats(userId)));
+    
+    await Promise.all(cachePromises);
+
+    return result.rowCount || 0;
   }
 
   /**
@@ -277,6 +372,7 @@ export class ChatService {
     role: 'user' | 'assistant';
     content: string;
     created_at: string | number | Date;
+    rag_references?: any;
   }): Message {
     return {
       id: row.id,
@@ -284,6 +380,9 @@ export class ChatService {
       role: row.role,
       content: row.content,
       createdAt: new Date(row.created_at),
+      rag_references: row.rag_references && Array.isArray(row.rag_references)
+        ? row.rag_references as Reference[]
+        : undefined,
     };
   }
 

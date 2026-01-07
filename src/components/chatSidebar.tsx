@@ -13,12 +13,15 @@ import {
   Menu,
   MenuItem,
   useTheme,
+  Collapse,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteDialog from "./shared/DeleteDialog";
+import { getUserId } from "@/lib/auth";
 
 interface Chat {
   id: string;
@@ -42,12 +45,29 @@ export default function ChatSidebar({
   refreshTrigger,
 }: ChatSidebarProps) {
   const theme = useTheme();
+  const userId = getUserId();
+  
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [contextMenuAnchorEl, setContextMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [headerMenuAnchorEl, setHeaderMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+
+  // Delete dialog state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    chatId: string | null;
+    chatTitle: string;
+    type: string;
+  }>({
+    open: false,
+    chatId: null,
+    chatTitle: '',
+    type: 'single' // 'single' or 'all',
+  });
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
 
   // Fetch chats on mount
   useEffect(() => {
@@ -59,7 +79,7 @@ export default function ChatSidebar({
       setLoading(true);
       const response = await fetch("/api/chats", {
         headers: {
-          "x-user-id": getUserId(),
+          "x-user-id": userId,
         },
       });
 
@@ -87,37 +107,121 @@ export default function ChatSidebar({
     chatId: string
   ) => {
     event.stopPropagation();
-    setAnchorEl(event.currentTarget);
+    setContextMenuAnchorEl(event.currentTarget);
     setSelectedChatId(chatId);
   };
 
   const handleMenuClose = () => {
-    setAnchorEl(null);
+    setContextMenuAnchorEl(null);
     setSelectedChatId(null);
   };
 
-  const handleDeleteChat = async () => {
-    if (!selectedChatId) return;
+  // Handlers for header menu
+  const handleHeaderMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setHeaderMenuAnchorEl(event.currentTarget);
+  };
 
-    try {
-      const response = await fetch(`/api/chats/${selectedChatId}`, {
-        method: "DELETE",
-        headers: {
-          "x-user-id": getUserId(),
-        },
+  const handleHeaderMenuClose = () => {
+    setHeaderMenuAnchorEl(null);
+  };
+
+  const handleSort = () => {
+    console.log("Sort clicked")
+    handleHeaderMenuClose();
+  };
+
+  const handleDeleteAllChats = () => {
+    // Implement delete all chats functionality if needed
+    setDeleteDialog({
+        open: true,
+        chatId: null,
+        chatTitle: 'All chats',
+        type: 'all',
       });
+    handleHeaderMenuClose();
+  }
 
-      if (!response.ok) throw new Error("Failed to delete chat");
+  // Combined delete functions
+  const handleDeleteClick = (chatId: string, chatTitle: string, type: 'single' | 'all' = 'single') => {
+    setDeleteDialog({
+      open: true,
+      chatId,
+      chatTitle,
+      type,
+    });
+  };
 
-      setChats(chats.filter((chat) => chat.id !== selectedChatId));
+  const getDeleteMessage = () => {
+    if (deleteDialog.type === 'all') {
+      return `Are you sure you want to delete ALL chats?\nThis action cannot be undone and will delete ${chats.length} conversation${chats.length !== 1 ? 's' : ''}.`;
+    }
+    return `Are you sure you want to delete this chat with the title: "${deleteDialog.chatTitle}"?\nThis cannot be undone.`;
+  };
 
-      if (currentChatId === selectedChatId) {
-        onNewChat();
+  const handleDeleteConfirm = async () => {
+    try {
+      if (deleteDialog.type === 'all') {
+        // Handle delete all logic
+        console.log('Deleting all chats');
+        
+        // Start animation for all chats
+        const allChatIds = chats.map(chat => chat.id);
+        setDeletingChatId('all'); // or you could track multiple IDs
+        
+        // Delete all chats via API
+        const response = await fetch('/api/chats', {
+          method: "DELETE",
+          headers: {
+            "x-user-id": userId,
+          },
+        });
+
+        if (!response.ok) throw new Error("Failed to delete all chats");
+
+        // Wait for animation to finish
+        setTimeout(() => {
+          setChats([]);
+          setDeletingChatId(null);
+        }, 300);
+        
+        // If current chat is among deleted ones, start new chat
+        if (chats.some(chat => chat.id === currentChatId)) {
+          onNewChat();
+        }
+        
+      } else {
+        // Handle single chat deletion (your existing logic)
+        if (!deleteDialog.chatId) return;
+
+        const chatId = deleteDialog.chatId;
+
+        // Start animation
+        setDeletingChatId(chatId);
+
+        const response = await fetch(`/api/chats/${chatId}`, {
+          method: "DELETE",
+          headers: {
+            "x-user-id": userId,
+          },
+        });
+
+        if (!response.ok) throw new Error("Failed to delete chat");
+
+        // Wait for animation to finish
+        setTimeout(() => {
+          setChats(chats => chats.filter(chat => chat.id !== chatId));
+          setDeletingChatId(null);
+        }, 300); // match animation duration
+
+        if (currentChatId === chatId) {
+          onNewChat();
+        }
       }
     } catch (error) {
-      console.error("Error deleting chat:", error);
+      console.error("Error deleting:", error);
+      setDeletingChatId(null);
     } finally {
-      handleMenuClose();
+      setDeleteDialog({ open: false, chatId: null, chatTitle: '', type: 'single' });
     }
   };
 
@@ -140,7 +244,7 @@ export default function ChatSidebar({
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": getUserId(),
+          "x-user-id": userId,
         },
         body: JSON.stringify({ title: editTitle }),
       });
@@ -181,15 +285,6 @@ export default function ChatSidebar({
     return date.toLocaleDateString();
   };
 
-  const getUserId = () => {
-    let userId = localStorage.getItem("userId");
-    if (!userId) {
-      userId = `user_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem("userId", userId);
-    }
-    return userId;
-  };
-
   return (
     <Drawer
       variant="persistent"
@@ -227,17 +322,26 @@ export default function ChatSidebar({
           New Chat
         </Button>
 
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
         <Typography
           variant="caption"
           sx={{
             px: 1,
-            mb: 1,
             color: "text.secondary",
             fontWeight: 600,
           }}
         >
           CHAT HISTORY
         </Typography>
+        <IconButton
+          edge="end"
+          size="small"
+          onClick={(e) => handleHeaderMenuOpen(e)}
+          sx={{ color: "text.secondary" }}
+        >
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+        </Box>
 
         <Box sx={{ flex: 1, overflow: "auto" }}>
           {loading ? (
@@ -259,86 +363,92 @@ export default function ChatSidebar({
           ) : (
             <List sx={{ py: 0 }}>
               {chats.map((chat) => (
-                <ListItem
+                <Collapse
                   key={chat.id}
-                  disablePadding
-                  secondaryAction={
-                    editingChatId !== chat.id && (
-                      <IconButton
-                        edge="end"
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, chat.id)}
-                        sx={{ color: "text.secondary" }}
-                      >
-                        <MoreVertIcon fontSize="small" />
-                      </IconButton>
-                    )
-                  }
-                  sx={{ mb: 0.5 }}
+                  in={deletingChatId !== chat.id}
+                  timeout={300}
+                  unmountOnExit
                 >
-                  {editingChatId === chat.id ? (
-                    <Box sx={{ width: "100%", px: 1 }}>
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveEdit(chat.id);
-                          if (e.key === "Escape") handleCancelEdit();
-                        }}
-                        onBlur={() => handleSaveEdit(chat.id)}
-                        autoFocus
-                        style={{
-                          width: "100%",
-                          padding: "8px",
-                          background:
-                            theme.palette.mode === "dark"
-                              ? "rgba(255,255,255,0.1)"
-                              : "rgba(0,0,0,0.05)",
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: "4px",
-                          color: theme.palette.text.primary,
-                          fontSize: "14px",
-                        }}
-                      />
-                    </Box>
-                  ) : (
-                    <ListItemButton
-                      selected={currentChatId === chat.id}
-                      onClick={() => handleChatClick(chat.id)}
-                      sx={{
-                        borderRadius: 1,
-                        "&.Mui-selected": {
-                          bgcolor: "action.selected",
+                  <ListItem
+                    disablePadding
+                    secondaryAction={
+                      editingChatId !== chat.id && (
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          onClick={(e) => handleMenuOpen(e, chat.id)}
+                          sx={{ color: "text.secondary" }}
+                        >
+                          <MoreVertIcon fontSize="small" />
+                        </IconButton>
+                      )
+                    }
+                    sx={{ mb: 0.5 }}
+                  >
+                    {editingChatId === chat.id ? (
+                      <Box sx={{ width: "100%", px: 1 }}>
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEdit(chat.id);
+                            if (e.key === "Escape") handleCancelEdit();
+                          }}
+                          onBlur={() => handleSaveEdit(chat.id)}
+                          autoFocus
+                          style={{
+                            width: "100%",
+                            padding: "8px",
+                            background:
+                              theme.palette.mode === "dark"
+                                ? "rgba(255,255,255,0.1)"
+                                : "rgba(0,0,0,0.05)",
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: "4px",
+                            color: theme.palette.text.primary,
+                            fontSize: "14px",
+                          }}
+                        />
+                      </Box>
+                    ) : (
+                      <ListItemButton
+                        selected={currentChatId === chat.id}
+                        onClick={() => handleChatClick(chat.id)}
+                        sx={{
+                          borderRadius: 1,
+                          "&.Mui-selected": {
+                            bgcolor: "action.selected",
+                            "&:hover": {
+                              bgcolor: "action.hover",
+                            },
+                          },
                           "&:hover": {
                             bgcolor: "action.hover",
                           },
-                        },
-                        "&:hover": {
-                          bgcolor: "action.hover",
-                        },
-                      }}
-                    >
-                      <ListItemText
-                        primary={chat.title}
-                        secondary={formatDate(chat.updatedAt)}
-                        primaryTypographyProps={{
-                          noWrap: true,
-                          sx: {
-                            color: "text.primary",
-                            fontSize: "0.875rem",
-                          },
                         }}
-                        secondaryTypographyProps={{
-                          sx: {
-                            color: "text.secondary",
-                            fontSize: "0.75rem",
-                          },
-                        }}
-                      />
-                    </ListItemButton>
-                  )}
-                </ListItem>
+                      >
+                        <ListItemText
+                          primary={chat.title}
+                          secondary={formatDate(chat.updatedAt)}
+                          primaryTypographyProps={{
+                            noWrap: true,
+                            sx: {
+                              color: "text.primary",
+                              fontSize: "0.875rem",
+                            },
+                          }}
+                          secondaryTypographyProps={{
+                            sx: {
+                              color: "text.secondary",
+                              fontSize: "0.75rem",
+                            },
+                          }}
+                        />
+                      </ListItemButton>
+                    )}
+                  </ListItem>
+                </Collapse>
               ))}
             </List>
           )}
@@ -347,8 +457,8 @@ export default function ChatSidebar({
 
       {/* Context Menu */}
       <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
+        anchorEl={contextMenuAnchorEl}
+        open={Boolean(contextMenuAnchorEl)}
         onClose={handleMenuClose}
         PaperProps={{
           sx: {
@@ -361,11 +471,51 @@ export default function ChatSidebar({
           <EditIcon fontSize="small" sx={{ mr: 1 }} />
           Rename
         </MenuItem>
-        <MenuItem onClick={handleDeleteChat} sx={{ color: "error.main" }}>
+        <MenuItem
+          onClick={() => {
+            const chat = chats.find((c) => c.id === selectedChatId);
+            if (chat) {
+              handleDeleteClick(chat.id, chat.title);
+            }
+            handleMenuClose();
+          }}
+          sx={{ color: "error.main" }}
+        >
           <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
           Delete
         </MenuItem>
       </Menu>
+
+      {/* Header Menu */}
+      <Menu
+        anchorEl={headerMenuAnchorEl}
+        open={Boolean(headerMenuAnchorEl)}
+        onClose={handleHeaderMenuClose}
+        PaperProps={{
+          sx: {
+            bgcolor: "background.paper",
+            color: "text.primary",
+          },
+        }}
+      >
+        <MenuItem onClick={handleSort}>
+          <AddIcon fontSize="small" sx={{ mr: 1 }} />
+          Sort
+        </MenuItem>
+        <MenuItem onClick={handleDeleteAllChats} sx={{ color: "error.main" }}>
+          <AddIcon fontSize="small" sx={{ mr: 1 }} />
+          Delete All
+        </MenuItem>
+      </Menu>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteDialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ ...deleteDialog, open: false })}
+        onConfirm={handleDeleteConfirm}
+        fileName={deleteDialog.chatTitle}
+        message={getDeleteMessage()}
+      />
     </Drawer>
   );
 }

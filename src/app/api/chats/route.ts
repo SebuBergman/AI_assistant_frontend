@@ -5,8 +5,10 @@ import { ChatService } from '@/lib/chatService';
 export async function GET(request: NextRequest) {
   try {
     // Get user ID from session/auth - replace with your auth logic
-    const userId = request.headers.get('x-user-id') || 'anonymous';
-    
+    const userId = request.headers.get('x-user-id') || "default-user";
+
+    console.log("Fetching chats from chats/route.ts for userId:", userId);
+
     const chats = await ChatService.getUserChats(userId);
     
     return NextResponse.json({ chats });
@@ -21,7 +23,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id') || 'anonymous';
+    const userId = request.headers.get('x-user-id') || "default-user";
+    
     const body = await request.json();
     const { message } = body;
     
@@ -39,6 +42,25 @@ export async function POST(request: NextRequest) {
     console.error('Error creating chat:', error);
     return NextResponse.json(
       { error: 'Failed to create chat' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const userId = request.headers.get('x-user-id') || "default-user";
+
+    const deletedCount = await ChatService.deleteAllChats(userId);
+
+    return NextResponse.json({
+      success: true,
+      deletedCount,
+    });
+  } catch (error) {
+    console.error('Error deleting all chats:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete all chats' },
       { status: 500 }
     );
   }
