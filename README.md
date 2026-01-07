@@ -191,8 +191,7 @@ execute function update_updated_at_column();
 
 ---
 
-## 📝 TODO (Frontend)
-- Enhance RAG preview for selected PDFs
+## 📝 TODO
 
 ---
 

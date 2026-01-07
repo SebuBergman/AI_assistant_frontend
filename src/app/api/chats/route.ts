@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
     // Get user ID from session/auth - replace with your auth logic
     const userId = request.headers.get('x-user-id') || "default-user";
 
+    console.log("Fetching chats from chats/route.ts for userId:", userId);
+
     const chats = await ChatService.getUserChats(userId);
     
     return NextResponse.json({ chats });

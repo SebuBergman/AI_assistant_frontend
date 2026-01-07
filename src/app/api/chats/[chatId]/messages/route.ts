@@ -9,6 +9,7 @@ export async function GET(
   try {
     const { chatId } = await params;
 
+    console.log("Fetching messages for chatId:", chatId);
     const messages = await ChatService.getChatMessages(chatId);
 
     return NextResponse.json({ messages });

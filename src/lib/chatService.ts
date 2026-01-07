@@ -204,7 +204,6 @@ export class ChatService {
   static async getChatMessages(chatId: string): Promise<Message[]> {
     const redis = getRedis();
     const cacheKey = CACHE_KEYS.chatMessages(chatId);
-
     // Try cache
     try {
       const cached = await redis.get(cacheKey);
@@ -229,6 +228,7 @@ export class ChatService {
     } catch (error) {
       console.error("Redis cache error:", error);
     }
+
 
     return messages;
   }
@@ -372,7 +372,7 @@ export class ChatService {
     role: 'user' | 'assistant';
     content: string;
     created_at: string | number | Date;
-    references?: Reference[];
+    rag_references?: any;
   }): Message {
     return {
       id: row.id,
@@ -380,9 +380,9 @@ export class ChatService {
       role: row.role,
       content: row.content,
       createdAt: new Date(row.created_at),
-      references: Array.isArray(row.references)
-      ? (row.references as Reference[])
-      : undefined,
+      rag_references: row.rag_references && Array.isArray(row.rag_references)
+        ? row.rag_references as Reference[]
+        : undefined,
     };
   }
 

@@ -23,11 +23,13 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [expandedRefs, setExpandedRefs] = useState<{ [key: string]: boolean }>({});
 
-
   // Scroll to bottom when messages change or streaming completes
   useEffect(() => {
     if (!isStreaming && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      /*console.log(
+        "Scrolling to bottom of messages " + JSON.stringify(messages, null, 2)
+      );*/
     }
   }, [messages, isStreaming]);
 
@@ -44,7 +46,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
 
   return (
     <Box sx={{ mb: 3 }}>
-      {messages.map((msg, index) => (
+      {messages.map((msg) => (
         <Box
           key={msg.id}
           sx={{
@@ -162,7 +164,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
               </Box>
 
               {/* References Section */}
-              {msg.references && msg.references.length > 0 && (
+              {msg.rag_references && msg.rag_references.length > 0 && (
                 <Paper
                   elevation={0}
                   sx={{
@@ -203,7 +205,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                           color: theme.palette.mode === "dark" ? "#90caf9" : "#1976d2",
                         }}
                       >
-                        References ({msg.references.length})
+                        References ({msg.rag_references.length})
                       </Typography>
                     </Box>
                     <IconButton size="small">
@@ -217,13 +219,13 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
 
                   <Collapse in={expandedRefs[msg.id]} timeout="auto">
                     <Box sx={{ mt: 2 }}>
-                      {msg.references.map((ref, refIndex) => (
+                      {msg.rag_references.map((ref, refIndex) => (
                         <Paper
                           key={refIndex}
                           elevation={0}
                           sx={{
                             p: 2,
-                            mb: refIndex < msg.references!.length - 1 ? 1.5 : 0,
+                            mb: refIndex < msg.rag_references!.length - 1 ? 1.5 : 0,
                             bgcolor:
                               theme.palette.mode === "dark"
                                 ? "rgba(255, 255, 255, 0.03)"

@@ -4,7 +4,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   createdAt: Date;
-  references?: Reference[];
+  rag_references?: Reference[];
 }
 
 export interface Reference {

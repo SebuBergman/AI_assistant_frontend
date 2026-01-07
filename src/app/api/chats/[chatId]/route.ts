@@ -10,6 +10,8 @@ export async function GET(
     const userId = request.headers.get("x-user-id") || "default-user";
     const { chatId } = await params;
 
+    console.log("Fetching chat for chatId, Chatid: route.ts:", chatId);
+
     const chat = await ChatService.getChatById(chatId, userId);
 
     if (!chat) {
