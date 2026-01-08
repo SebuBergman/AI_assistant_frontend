@@ -36,6 +36,9 @@ export async function fetchSavedDocuments(): Promise<SavedDocument[]> {
     file_size: doc.file_size,
     file_id: doc.file_id,
     chunks: doc.chunks || [], // Now includes chunk previews
+    metrics: {
+      total_chunk_tokens: doc.metrics.total_chunk_tokens || 0,
+    }
   }));
 }
 

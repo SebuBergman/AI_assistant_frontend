@@ -55,6 +55,7 @@ export default function AIAssistant() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isNewChat, setIsNewChat] = useState(true);
+  const [tokenCounts, setTokenCounts] = useState<{ input: number; output: number; total: number } | null>(null);
 
   // Sidebar refresh prop
   const [refreshSidebar, setRefreshSidebar] = useState(0);
@@ -238,14 +239,20 @@ export default function AIAssistant() {
                 setError(json.error);
                 break;
               }
-              if (json.done) break;
+
+              if (json.tokens) {
+                setMessages(prev =>
+                  prev.map(msg =>
+                    msg.id === streamingAIMessageId
+                    ? { ...msg, tokenCounts: json.tokens }
+                    : msg
+                  )
+                )
+              }
 
               // Capture RAG metadata and references
-              if (json.metadata?.rag_enabled) {
-                console.log('RAG is being used:', json.metadata);
-                if (json.metadata.references) {
-                  ragReferences = json.metadata.references;
-                }
+              if (json.metadata?.rag_enabled && json.metadata.references) {
+                ragReferences = json.metadata.references;
               }
 
               // Update reasoning display (for models that show thinking)
@@ -268,6 +275,9 @@ export default function AIAssistant() {
                   )
                 );
               }
+
+              if (json.done) break;
+
             } catch (e) {
               console.error("Parse error:", e);
             }
@@ -383,14 +393,20 @@ export default function AIAssistant() {
               setError(json.error);
               break;
             }
-            if (json.done) break;
 
-            // ✅ Capture RAG metadata
-            if (json.metadata?.rag_enabled) {
-              console.log('RAG is being used:', json.metadata);
-              if (json.metadata.references) {
-                ragReferences = json.metadata.references;
-              }
+            if (json.tokens) {
+              setMessages(prev =>
+                prev.map(msg =>
+                  msg.id === streamingAIMessageId
+                  ? { ...msg, tokenCounts: json.tokens }
+                  : msg
+                )
+              )
+            }
+
+            // Capture RAG metadata
+            if (json.metadata?.rag_enabled && json.metadata.references) {
+              ragReferences = json.metadata.references;
             }
 
             if (json.type === "reasoning") {
@@ -412,6 +428,9 @@ export default function AIAssistant() {
                 )
               );
             }
+
+            if (json.done) break;
+
           } catch (e) {
             console.error("Parse error:", e);
           }
@@ -453,7 +472,6 @@ export default function AIAssistant() {
     email: string, 
     tone: string, 
   ) => {
-    console.log("Called function")
     const response = await fetch("/api/chat/email/rewrite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
