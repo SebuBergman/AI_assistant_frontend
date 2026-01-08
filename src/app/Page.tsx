@@ -55,6 +55,7 @@ export default function AIAssistant() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isNewChat, setIsNewChat] = useState(true);
+  const [tokenCounts, setTokenCounts] = useState<{ input: number; output: number; total: number } | null>(null);
 
   // Sidebar refresh prop
   const [refreshSidebar, setRefreshSidebar] = useState(0);
@@ -238,6 +239,11 @@ export default function AIAssistant() {
                 setError(json.error);
                 break;
               }
+
+              if (json.tokens) {
+                setTokenCounts(json.tokens);
+              }
+
               if (json.done) break;
 
               // Capture RAG metadata and references

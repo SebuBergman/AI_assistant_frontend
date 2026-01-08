@@ -288,6 +288,67 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                   </Collapse>
                 </Paper>
               )}
+
+              {/* Token Counts Section */}
+              {msg.tokenCounts && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    mt: 1.5,
+                    p: 2,
+                    bgcolor:
+                      theme.palette.mode === "dark"
+                        ? "rgba(255, 255, 255, 0.05)"
+                        : "rgba(0, 0, 0, 0.02)",
+                    borderRadius: 2,
+                    border: `1px solid ${
+                      theme.palette.mode === "dark"
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.1)"
+                    }`,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => toggleReferences(msg.id + "_tokens")}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1}}>
+                      <DescriptionIcon
+                        sx={{fontSize: 20, color: theme.palette.mode === "dark" ? "#90caf9" : "#1976d2",}}
+                      />
+                      <Typography variant="subtitle2" sx={{fontWeight: 600, color: theme.palette.mode === "dark" ? "#90caf9" : "#1976d2",}}>
+                        Token Counts
+                      </Typography>
+                    </Box>
+                    <IconButton size="small">
+                      {expandedRefs[msg.id + "_tokens"] ? (
+                        <ExpandLessIcon fontSize="small" />
+                      ) : (
+                        <ExpandMoreIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </Box>
+
+                  <Collapse in={expandedRefs[msg.id + "_tokens"]} timeout="auto">
+                    <Box sx={{ mt: 2}}>
+                      <Typography>
+                        <strong>Input Tokens:</strong> {msg.tokenCounts.input}
+                      </Typography>
+                      <Typography>
+                        <strong>Output Tokens:</strong> {msg.tokenCounts.output}
+                      </Typography>
+                      <Typography>
+                        <strong>Total Tokens:</strong> {msg.tokenCounts.total}
+                      </Typography>
+                    </Box>
+                  </Collapse>
+                </Paper>
+              )}
             </Box>
           )}
         </Box>
