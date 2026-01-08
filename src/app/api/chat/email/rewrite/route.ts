@@ -1,6 +1,5 @@
 // app/api/chat/email/rewrite/route.ts
 import { NextRequest } from 'next/server';
-import { ChatService } from '@/lib/chatService';
 
 const PYTHON_API_URL = process.env.PY_BACKEND_URL || 'http://localhost:8000';
 
@@ -24,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Forward request to Python backend
-    const backendRes = await fetch(`${PYTHON_API_URL}/email_assistant`, {
+    const backendRes = await fetch(`${PYTHON_API_URL}/email/email_assistant`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

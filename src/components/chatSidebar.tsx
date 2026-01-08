@@ -19,6 +19,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
+import SortIcon from "@mui/icons-material/Sort";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteDialog from "./shared/DeleteDialog";
 import { getUserId } from "@/lib/auth";
@@ -499,11 +500,11 @@ export default function ChatSidebar({
         }}
       >
         <MenuItem onClick={handleSort}>
-          <AddIcon fontSize="small" sx={{ mr: 1 }} />
+          <SortIcon fontSize="small" sx={{ mr: 1 }} />
           Sort
         </MenuItem>
         <MenuItem onClick={handleDeleteAllChats} sx={{ color: "error.main" }}>
-          <AddIcon fontSize="small" sx={{ mr: 1 }} />
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
           Delete All
         </MenuItem>
       </Menu>
