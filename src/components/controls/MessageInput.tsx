@@ -20,36 +20,26 @@ export const MessageInput = React.memo(function MessageInput({
   isStreaming,
   placeholder,
 }: MessageInputProps) {
-  const [draft, setDraft] = React.useState(currentInput);
-
-  React.useEffect(() => {
-    setDraft(currentInput);
-  }, [currentInput]);
-
   return (
     <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
       <TextField
         fullWidth
         multiline
         maxRows={6}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        value={currentInput}
+        onChange={(e) => onInputChange(e.target.value)}
         placeholder={placeholder}
         variant="outlined"
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            onInputChange(draft);
             onSend();
           }
         }}
       />
       <IconButton
         color="primary"
-        onClick={() => {
-          onInputChange(draft);
-          onSend();
-        }}
+        onClick={onSend}
         disabled={loading || isStreaming || !currentInput.trim()}
         sx={{
           bgcolor: "primary.main",
