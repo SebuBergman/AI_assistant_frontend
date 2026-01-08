@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     } = await req.json();
 
     const backendRes = await fetch(
-      process.env.PY_BACKEND_URL + "/api/generate",
+      process.env.PY_BACKEND_URL + "/api/chats/generate",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

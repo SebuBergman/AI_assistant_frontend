@@ -9,7 +9,7 @@ export const uploadPDF = async (file: File) => {
   formData.append('file', file);
 
   try {
-    const response = await axios.post(`${API_BASE_URL}/upload`, formData, {
+    const response = await axios.post(`${API_BASE_URL}/files/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -22,7 +22,7 @@ export const uploadPDF = async (file: File) => {
 };
 
 export async function fetchSavedDocuments(): Promise<SavedDocument[]> {
-  const res = await fetch(`${API_BASE_URL}/fetch_documents`);
+  const res = await fetch(`${API_BASE_URL}/rag/fetch_documents`);
   console.log("Fetch documents response:", res);
   if (!res.ok) throw new Error("Failed to fetch documents");
 
@@ -41,7 +41,7 @@ export async function fetchSavedDocuments(): Promise<SavedDocument[]> {
 
 export const deleteDocument = async (fileName: string) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/delete_document`, {
+    const response = await axios.post(`${API_BASE_URL}/rag/delete_document`, {
       file_name: fileName
     });
     return response.data;
@@ -53,7 +53,7 @@ export const deleteDocument = async (fileName: string) => {
 
 export const deleteAllDocuments = async () => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/clear_all`);
+    const response = await axios.post(`${API_BASE_URL}/rag/clear_all`);
     return response.data;
   } catch (error) {
     console.error('Error clearing documents:', error);
