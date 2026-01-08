@@ -19,13 +19,6 @@ pool.on('error', (err) => {
   console.error('❌ Unexpected database error:', err);
 });
 
-// Optional: Test connection immediately
-/*
-pool.query('SELECT NOW()')
-  .then(() => console.log('✅ Database connection verified'))
-  .catch((err) => console.error('❌ Database connection failed:', err.message));
-*/
-
 // Redis client for caching
 let redis: Redis | null = null;
 
