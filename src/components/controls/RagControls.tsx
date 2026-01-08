@@ -1,4 +1,5 @@
 import { SavedDocument } from "@/app/types";
+import { formatFileSize } from "@/utils/formatFileSize";
 import { Box, FormControl, FormControlLabel, InputLabel, MenuItem, Select, Switch, TextField, Typography } from "@mui/material";
 
 interface RagControlsProps {
@@ -36,7 +37,7 @@ export const RagControls = ({
           </MenuItem>
           {uploadedFiles.map((doc) => (
             <MenuItem key={doc.file_id} value={doc.file_name}>
-              {doc.file_name} ({(doc.file_size || 0) / 1024} KB, {new Date(doc.upload_date).toLocaleDateString()})
+              {doc.file_name} ({formatFileSize(doc.file_size)}, {new Date(doc.upload_date).toLocaleDateString()})
             </MenuItem>
           ))}
         </Select>

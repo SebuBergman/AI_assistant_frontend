@@ -27,6 +27,7 @@ import {
 import { DocumentChunk, SavedDocument } from '@/app/types';
 import { deleteAllDocuments, deleteDocument, uploadPDF } from '@/app/api/ragAPI';
 import DeleteDialog from '../shared/DeleteDialog';
+import { formatFileSize } from '@/utils/formatFileSize';
 
 interface DocumentsDialogProps {
   open: boolean;
@@ -197,7 +198,7 @@ export const DocumentsDialog: React.FC<DocumentsDialogProps> = ({
                         <FileIcon sx={{ mr: 2, color: 'primary.main' }} />
                         <ListItemText
                           primary={doc.file_name}
-                          secondary={`Uploaded: ${new Date(doc.upload_date).toLocaleDateString()} | Size: ${(doc.file_size/1024).toFixed(1)} KB`}
+                          secondary={`Uploaded: ${new Date(doc.upload_date).toLocaleDateString()} | Size: ${formatFileSize(doc.file_size)}`}
                         />
                         {expandedDocs.has(doc.file_id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </ListItemButton>
