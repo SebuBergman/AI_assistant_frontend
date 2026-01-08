@@ -337,13 +337,13 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                   <Collapse in={expandedRefs[msg.id + "_tokens"]} timeout="auto">
                     <Box sx={{ mt: 2}}>
                       <Typography>
-                        <strong>Input Tokens:</strong> {msg.tokenCounts.input}
+                        <strong>Input Tokens:</strong> {msg.tokenCounts.input_tokens}
                       </Typography>
                       <Typography>
-                        <strong>Output Tokens:</strong> {msg.tokenCounts.output}
+                        <strong>Output Tokens:</strong> {msg.tokenCounts.output_tokens}
                       </Typography>
                       <Typography>
-                        <strong>Total Tokens:</strong> {msg.tokenCounts.total}
+                        <strong>Total Tokens:</strong> {msg.tokenCounts.total_tokens}
                       </Typography>
                     </Box>
                   </Collapse>

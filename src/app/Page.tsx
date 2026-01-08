@@ -241,17 +241,18 @@ export default function AIAssistant() {
               }
 
               if (json.tokens) {
-                setTokenCounts(json.tokens);
+                setMessages(prev =>
+                  prev.map(msg =>
+                    msg.id === streamingAIMessageId
+                    ? { ...msg, tokenCounts: json.tokens }
+                    : msg
+                  )
+                )
               }
 
-              if (json.done) break;
-
               // Capture RAG metadata and references
-              if (json.metadata?.rag_enabled) {
-                console.log('RAG is being used:', json.metadata);
-                if (json.metadata.references) {
-                  ragReferences = json.metadata.references;
-                }
+              if (json.metadata?.rag_enabled && json.metadata.references) {
+                ragReferences = json.metadata.references;
               }
 
               // Update reasoning display (for models that show thinking)
@@ -274,6 +275,9 @@ export default function AIAssistant() {
                   )
                 );
               }
+
+              if (json.done) break;
+
             } catch (e) {
               console.error("Parse error:", e);
             }
@@ -389,14 +393,20 @@ export default function AIAssistant() {
               setError(json.error);
               break;
             }
-            if (json.done) break;
 
-            // ✅ Capture RAG metadata
-            if (json.metadata?.rag_enabled) {
-              console.log('RAG is being used:', json.metadata);
-              if (json.metadata.references) {
-                ragReferences = json.metadata.references;
-              }
+            if (json.tokens) {
+              setMessages(prev =>
+                prev.map(msg =>
+                  msg.id === streamingAIMessageId
+                  ? { ...msg, tokenCounts: json.tokens }
+                  : msg
+                )
+              )
+            }
+
+            // Capture RAG metadata
+            if (json.metadata?.rag_enabled && json.metadata.references) {
+              ragReferences = json.metadata.references;
             }
 
             if (json.type === "reasoning") {
@@ -418,6 +428,9 @@ export default function AIAssistant() {
                 )
               );
             }
+
+            if (json.done) break;
+
           } catch (e) {
             console.error("Parse error:", e);
           }
@@ -459,7 +472,6 @@ export default function AIAssistant() {
     email: string, 
     tone: string, 
   ) => {
-    console.log("Called function")
     const response = await fetch("/api/chat/email/rewrite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

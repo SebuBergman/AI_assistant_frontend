@@ -5,7 +5,7 @@ export interface Message {
   content: string;
   createdAt: Date;
   rag_references?: Reference[];
-  tokenCounts?: { input: number; output: number; total: number }
+  tokenCounts?: { input_tokens: number; output_tokens: number; total_tokens: number }
 }
 
 export interface Reference {
