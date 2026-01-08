@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   IconButton,
@@ -92,11 +92,6 @@ export default function AIAssistant() {
     const docs = await fetchSavedDocuments();
     setUploadedFiles(docs);
   };
-
-  // For changing from light to dark and vice versa
-  if (!mode) {
-    return null;
-  }
 
   const loadChatMessages = async (chatId: string) => {
     try {
@@ -693,22 +688,44 @@ export default function AIAssistant() {
     }
   };
 
-  const handleSend = () => {
-    if (activeFeature === 'email') {
-      handleEmailStream();
-    } else {
-      handleStreamMessage();
-    }
-  };
-
-  const currentInput = activeFeature === 'email' ? email : prompt;
-  const setCurrentInput = (value: React.SetStateAction<string>) => {
+  const currentInput = useMemo(
+    () => (activeFeature === 'email' ? email : prompt),
+    [activeFeature, email, prompt]
+  );
+  
+  const setCurrentInput = useCallback(
+    (value: React.SetStateAction<string>) => {
     if (activeFeature === 'email') {
       setEmail(value);
     } else {
       setPrompt(value);
     }
-  };
+  }, [activeFeature]);
+
+  const handleSend = useCallback(() => {
+    if (activeFeature === 'email') {
+      handleEmailStream();
+    } else {
+      handleStreamMessage();
+    }
+  }, [activeFeature, handleEmailStream, handleStreamMessage]);
+
+  const onSend = useCallback(() => {
+    handleSend();
+  }, [handleSend]);
+
+  const placeholder = useMemo(() => {
+    if (activeFeature === 'email') return 'Paste your email here...';
+    if (isRagEnabled && uploadedFiles.length > 0) {
+      return 'Ask a question about your documents...';
+    }
+    return 'Ask me anything...';
+  }, [activeFeature, isRagEnabled, uploadedFiles]);
+
+  // For changing from light to dark and vice versa
+  if (!mode) {
+    return null;
+  }
 
   return (
     <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -865,16 +882,10 @@ export default function AIAssistant() {
             <MessageInput
               currentInput={currentInput}
               onInputChange={setCurrentInput}
-              onSend={handleSend}
+              onSend={onSend}
               loading={loading}
               isStreaming={isStreaming}
-              placeholder={
-                activeFeature === "email"
-                  ? "Paste your email here..."
-                  : isRagEnabled && uploadedFiles.length > 0
-                  ? "Ask a question about your documents..."
-                  : "Ask me anything..."
-              }
+              placeholder={placeholder}
             />
           </Box>
         </Box>
