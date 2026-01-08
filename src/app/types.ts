@@ -28,6 +28,9 @@ export interface SavedDocument {
   file_size: number;     // in bytes
   file_id: string;       // unique identifier for the file
   chunks?: DocumentChunk[]; // optional array of chunks for preview
+  metrics?: {
+    total_chunk_tokens: number;
+  };
 }
 
 export interface DocumentChunk {

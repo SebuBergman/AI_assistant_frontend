@@ -195,10 +195,19 @@ export const DocumentsDialog: React.FC<DocumentsDialogProps> = ({
                       disablePadding
                     >
                       <ListItemButton onClick={() => toggleExpand(doc.file_id)}>
-                        <FileIcon sx={{ mr: 2, color: 'primary.main' }} />
                         <ListItemText
                           primary={doc.file_name}
-                          secondary={`Uploaded: ${new Date(doc.upload_date).toLocaleDateString()} | Size: ${formatFileSize(doc.file_size)}`}
+                          secondary={
+                            <>
+                              <span>
+                                Uploaded: {new Date(doc.upload_date).toLocaleDateString()} | Size: {formatFileSize(doc.file_size)}
+                              </span>
+                              <br />
+                              <span>
+                                Total embed tokens: {doc.metrics?.total_chunk_tokens}
+                              </span>
+                            </>
+                          }
                         />
                         {expandedDocs.has(doc.file_id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </ListItemButton>
