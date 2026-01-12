@@ -62,18 +62,6 @@ The page auto-reloads when files are saved.
 ---
 
 ## ⚠️ Known Bug (IMPORTANT)
-GitHub sometimes capitalizes the file as:
-
-```
-Page.tsx
-```
-
-This **breaks Next.js routing**.  
-Rename it manually to:
-
-```
-page.tsx
-```
 
 ---
 
