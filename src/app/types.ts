@@ -1,17 +1,24 @@
 export interface Message {
   id: string;
-  chatId?: string;
   role: "user" | "assistant";
   content: string;
   createdAt: Date;
-  rag_references?: Reference[];
-  tokenCounts?: { input_tokens: number; output_tokens: number; total_tokens: number }
+  chatId?: string;
+  references?: Reference[]; // for streaming
+  rag_references?: Reference[]; // for DB loaded messages
+  tokenCounts?: TokenCounts; // for token usage tracking
 }
 
 export interface Reference {
   file_name: string;
   content: string;
   score: string;
+}
+
+export interface TokenCounts {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
 }
 
 export interface Chat {

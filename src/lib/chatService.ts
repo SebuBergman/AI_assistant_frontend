@@ -1,5 +1,5 @@
 // lib/chatService.ts
-import { Chat, Message, Reference } from '@/app/types';
+import { Chat, Message, Reference, TokenCounts } from '@/app/types';
 import { pool, getRedis, CACHE_KEYS, CACHE_TTL } from './db';
 
 export class ChatService {
@@ -204,6 +204,7 @@ export class ChatService {
   static async getChatMessages(chatId: string): Promise<Message[]> {
     const redis = getRedis();
     const cacheKey = CACHE_KEYS.chatMessages(chatId);
+    
     // Try cache
     try {
       const cached = await redis.get(cacheKey);
@@ -238,9 +239,10 @@ export class ChatService {
    */
   static async addMessage(
     chatId: string,
-    role: "user" | "assistant",
+    role: string,
     content: string,
-    references?: any[]
+    references?: Reference[],
+    tokenCounts?: TokenCounts,
   ): Promise<Message> {
     const client = await pool.connect();
     const redis = getRedis();
@@ -250,8 +252,14 @@ export class ChatService {
 
       // Insert message with references
       const result = await client.query(
-        "INSERT INTO messages (chat_id, role, content, rag_references) VALUES ($1, $2, $3, $4) RETURNING *",
-        [chatId, role, content, references ? JSON.stringify(references) : null]
+        "INSERT INTO messages (chat_id, role, content, rag_references, token_counts) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        [
+          chatId, 
+          role, 
+          content, 
+          references ? JSON.stringify(references) : null,
+          tokenCounts ? JSON.stringify(tokenCounts) : null
+        ]
       );
 
       // Update chat timestamp
@@ -373,6 +381,7 @@ export class ChatService {
     content: string;
     created_at: string | number | Date;
     rag_references?: any;
+    token_counts?: any;
   }): Message {
     return {
       id: row.id,
@@ -382,6 +391,9 @@ export class ChatService {
       createdAt: new Date(row.created_at),
       rag_references: row.rag_references && Array.isArray(row.rag_references)
         ? row.rag_references as Reference[]
+        : undefined,
+      tokenCounts: row.token_counts && typeof row.token_counts === 'object' && !Array.isArray(row.token_counts)
+        ? row.token_counts as TokenCounts
         : undefined,
     };
   }

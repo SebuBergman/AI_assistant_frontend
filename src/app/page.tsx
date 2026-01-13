@@ -267,9 +267,9 @@ export default function AIAssistant() {
                   prev.map(msg => 
                     msg.id === streamingAIMessageId 
                       ? { 
-                          ...msg, 
-                          content: finalAIText,
-                          references: ragReferences.length > 0 ? ragReferences : undefined // ✅ Add references
+                        ...msg, 
+                        content: finalAIText,
+                        rag_references: ragReferences.length > 0 ? ragReferences : undefined
                         }
                       : msg
                   )
@@ -375,6 +375,9 @@ export default function AIAssistant() {
       };
       setMessages(prev => [...prev, streamingAIMsg]);
 
+      // Store token counts during streaming
+      let finalTokenCounts: { input_tokens: number; output_tokens: number; total_tokens: number } | undefined;
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -394,20 +397,27 @@ export default function AIAssistant() {
               break;
             }
 
+            // Capture token counts when they arrive
             if (json.tokens) {
+              finalTokenCounts = json.tokens;
               setMessages(prev =>
                 prev.map(msg =>
                   msg.id === streamingAIMessageId
-                  ? { ...msg, tokenCounts: json.tokens }
+                  ? { 
+                      ...msg,
+                      tokenCounts: json.tokens,
+                      rag_references: ragReferences.length > 0 ? ragReferences : undefined  // Explicitly keep references
+                    }
                   : msg
                 )
-              )
+              );
             }
 
             // Capture RAG metadata
             if (json.metadata?.rag_enabled && json.metadata.references) {
               ragReferences = json.metadata.references;
             }
+
 
             if (json.type === "reasoning") {
               setReasoning(prev => prev + json.content);
@@ -420,9 +430,9 @@ export default function AIAssistant() {
                 prev.map(msg => 
                   msg.id === streamingAIMessageId 
                     ? { 
-                        ...msg, 
-                        content: finalAIText,
-                        references: ragReferences.length > 0 ? ragReferences : undefined
+                      ...msg, 
+                      content: finalAIText,
+                      rag_references: ragReferences.length > 0 ? ragReferences : undefined
                       }
                     : msg
                 )
@@ -445,7 +455,8 @@ export default function AIAssistant() {
           body: JSON.stringify({
             role: "assistant",
             content: finalAIText,
-            references: ragReferences.length > 0 ? ragReferences : undefined
+            references: ragReferences.length > 0 ? ragReferences : undefined,
+            tokenCounts: finalTokenCounts,
           }),
         });
 
