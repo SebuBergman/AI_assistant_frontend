@@ -10,10 +10,12 @@ Users can:
 - Switch between **dark/light mode**
 - Enable **Temporary Chat** (doesn’t save to Redis)
 - Enable/disable **RAG**
-- Upload PDFs & delete all documents
+- Upload documents & delete all documents from RAG
 - Pick embedded PDFs for hybrid search queries
 - Use keyword search (optional) + prompt
 - Manage sidebar chat history (auto-generated titles)
+- Shows RAG context and references used to generate a response
+- Shows token counts (input, output and total) for each prompt
 
 ---
 
@@ -116,6 +118,7 @@ create table public.messages (
   role character varying(50) not null,
   content text not null,
   rag_references jsonb null,
+  token_counts jsonb null,
   created_at timestamp with time zone null default now(),
   constraint messages_pkey primary key (id),
   constraint messages_chat_id_fkey 
