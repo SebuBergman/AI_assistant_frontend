@@ -183,7 +183,13 @@ execute function update_updated_at_column();
 ---
 
 ## 📝 TODO
-
+Model router + "best model" suggestion?
+RAG quality controls
+- Top-K chunks, chunk size preview, similarity threshold
+- Hybrid weighting slider
+- "Require citations" toggle (answer must cite sources or say "not found")
+- "Only use my docs" mode (no general knowledge / no web)
+- Cost estimation
 ---
 
 ## 🔗 Backend Link
