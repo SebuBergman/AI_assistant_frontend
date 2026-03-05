@@ -92,17 +92,6 @@ export const chatgptModels = [
     },
   },
   {
-    id: "gpt-4.1-nano",
-    name: "GPT-4.1 Nano",
-    description:
-      "Lightweight option for quick facts, simple queries, or short responses.",
-    tool_calling: false,
-    pricing: {
-      input: "$0.0001 / 1K tokens",
-      output: "$0.0004 / 1K tokens",
-    },
-  },
-  {
     id: "o4-mini-deep-research",
     name: "GPT-o4 Mini Deep Research",
     description:
@@ -117,8 +106,8 @@ export const chatgptModels = [
 
 export const claudeModels = [
   {
-    id: "claude-sonnet-4-5",
-    name: "Claude Sonnet 4.5",
+    id: "claude-sonnet-4-6",
+    name: "Claude Sonnet 4.6",
     description:
       "Enterprise-grade performance for large-scale, high-context workloads and automation.",
     tool_calling: true,
@@ -139,8 +128,8 @@ export const claudeModels = [
     },
   },
   {
-    id: "claude-opus-4-5",
-    name: "Claude Opus 4.5",
+    id: "claude-opus-4-6",
+    name: "Claude Opus 4.6",
     description:
       "Flagship model for deep reasoning, complex analysis, and long-form creative or technical writing.",
     tool_calling: true,
