@@ -42,7 +42,7 @@ export default function AIAssistant() {
   const [prompt, setPrompt] = useState('');
   const [email, setEmail] = useState('');
   const [tone, setTone] = useState('professional');
-  const [selectedModel, setSelectedModel] = useState('deepseek-chat');
+  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-6');
   const [temperature, setTemperature] = useState(0.7);
   const [loading, setLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -884,7 +884,7 @@ export default function AIAssistant() {
                   <ModelSelector
                     selectedModel={selectedModel}
                     onModelChange={setSelectedModel}
-                    deepseekModels={deepseekModels}
+                    //deepseekModels={deepseekModels}
                     chatgptModels={chatgptModels}
                     claudeModels={claudeModels}
                   />
