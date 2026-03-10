@@ -1,3 +1,5 @@
+import { CostEstimate } from "@/lib/modelPricing";
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -7,6 +9,7 @@ export interface Message {
   references?: Reference[]; // for streaming
   rag_references?: Reference[]; // for DB loaded messages
   tokenCounts?: TokenCounts; // for token usage tracking
+  costEstimate?: CostEstimate; // for cost estimation tracking
 }
 
 export interface Reference {

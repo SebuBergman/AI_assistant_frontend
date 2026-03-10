@@ -29,6 +29,7 @@ import { ToneSelector } from '@/components/controls/ToneSelector';
 import { RagControls } from '@/components/controls/RagControls';
 import { MessageInput } from '@/components/controls/MessageInput';
 import { getUserId } from '@/lib/auth';
+import { calculateCost } from '@/lib/modelPricing';
 
 export default function AIAssistant() {
   const theme = useTheme();
@@ -241,10 +242,15 @@ export default function AIAssistant() {
               }
 
               if (json.tokens) {
+                const costEstimate = calculateCost(
+                  selectedModel,
+                  json.tokens.input_tokens,
+                  json.tokens.output_tokens
+                );
                 setMessages(prev =>
                   prev.map(msg =>
                     msg.id === streamingAIMessageId
-                    ? { ...msg, tokenCounts: json.tokens }
+                    ? { ...msg, tokenCounts: json.tokens, costEstimate }
                     : msg
                   )
                 )
@@ -400,12 +406,18 @@ export default function AIAssistant() {
             // Capture token counts when they arrive
             if (json.tokens) {
               finalTokenCounts = json.tokens;
+              const costEstimate = calculateCost(
+                selectedModel,
+                json.tokens.input_tokens,
+                json.tokens.output_tokens
+              );
               setMessages(prev =>
                 prev.map(msg =>
                   msg.id === streamingAIMessageId
                   ? { 
                       ...msg,
                       tokenCounts: json.tokens,
+                      costEstimate,
                       rag_references: ragReferences.length > 0 ? ragReferences : undefined  // Explicitly keep references
                     }
                   : msg
@@ -432,7 +444,7 @@ export default function AIAssistant() {
                     ? { 
                       ...msg, 
                       content: finalAIText,
-                      rag_references: ragReferences.length > 0 ? ragReferences : undefined
+                      rag_references: ragReferences.length > 0 ? ragReferences : undefined,
                       }
                     : msg
                 )

@@ -27,25 +27,37 @@ export const deepseekModels = [
 
 export const chatgptModels = [
   {
-    id: "gpt-5.2",
-    name: "GPT-5.2",
+    id: "gpt-5.4",
+    name: "GPT-5.4",
     description: "Best flagship model for coding and agentic tasks across industries.",
     tool_calling: true,
     pricing: {
-      input: "$0.00175 / 1K tokens",
-      output: "$0.014 / 1K tokens",
+      input: "$0.0025 / 1K tokens",
+      output: "$0.015 / 1K tokens",
     }
   },
   {
-    id: "gpt-5.1",
-    name: "GPT-5.1",
+    id: "gpt-5.2",
+    name: "GPT-5.2",
     description:
       "Best for complex reasoning, detailed explanations, coding, and high-quality creative tasks.",
     tool_calling: true,
     pricing: {
-      input: "$0.00125 / 1K tokens",
-      output: "$0.01 / 1K tokens",
+      input: "$0.00175 / 1K tokens",
+      output: "$0.014 / 1K tokens",
     },
+  },
+  {
+    id: "gpt-5.3-codex",
+    name: "GPT-5.3 Codex",
+    description:
+      "Optimized for coding tasks, code generation, and debugging across multiple programming languages.",
+    tool_calling: true,
+    pricing: {
+      input: "$0.00175 / 1K tokens",
+      output: "$0.014 / 1K tokens",
+    },
+
   },
   {
     id: "gpt-5-mini",
@@ -81,17 +93,6 @@ export const chatgptModels = [
     },
   },
   {
-    id: "gpt-4.1-mini",
-    name: "GPT-4.1 Mini",
-    description:
-      "Fast and efficient for day-to-day assistance, summaries, and conversational tasks.",
-    tool_calling: false,
-    pricing: {
-      input: "$0.0004 / 1K tokens",
-      output: "$0.0016 / 1K tokens",
-    },
-  },
-  {
     id: "o4-mini-deep-research",
     name: "GPT-o4 Mini Deep Research",
     description:
@@ -117,17 +118,6 @@ export const claudeModels = [
     },
   },
   {
-    id: "claude-haiku-4-5",
-    name: "Claude Haiku 4.5",
-    description:
-      "Balanced for everyday tasks—great for quick writing, summaries, light reasoning, and efficient coding help.",
-    tool_calling: true,
-    pricing: {
-      input: "$0.001 / 1K tokens",
-      output: "$0.005 / 1K tokens",
-    },
-  },
-  {
     id: "claude-opus-4-6",
     name: "Claude Opus 4.6",
     description:
@@ -136,6 +126,17 @@ export const claudeModels = [
     pricing: {
       input: "$0.005 / 1K tokens",
       output: "$0.025 / 1K tokens",
+    },
+  },
+  {
+    id: "claude-haiku-4-5",
+    name: "Claude Haiku 4.5",
+    description:
+      "Balanced for everyday tasks—great for quick writing, summaries, light reasoning, and efficient coding help.",
+    tool_calling: true,
+    pricing: {
+      input: "$0.001 / 1K tokens",
+      output: "$0.005 / 1K tokens",
     },
   },
   {
