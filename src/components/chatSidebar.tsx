@@ -291,10 +291,10 @@ export default function ChatSidebar({
       variant="persistent"
       open={sidebarOpen}
       sx={{
-        width: sidebarOpen ? 260 : 0,
+        width: sidebarOpen ? 300 : 0,
         flexShrink: 0,
         "& .MuiDrawer-paper": {
-          width: 260,
+          width: 300,
           boxSizing: "border-box",
           bgcolor: "background.paper",
           borderRight: `1px solid ${theme.palette.divider}`,
