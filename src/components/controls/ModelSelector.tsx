@@ -14,7 +14,7 @@ interface Model {
 interface ModelSelectorProps {
   selectedModel: string;
   onModelChange: (model: string) => void;
-  deepseekModels: Model[];
+  //deepseekModels: Model[];
   chatgptModels: Model[];
   claudeModels: Model[];
 }
@@ -22,7 +22,7 @@ interface ModelSelectorProps {
 export const ModelSelector = ({
   selectedModel,
   onModelChange,
-  deepseekModels,
+  //deepseekModels,
   chatgptModels,
   claudeModels,
 }: ModelSelectorProps) => {
@@ -39,7 +39,7 @@ export const ModelSelector = ({
           },
         }}
       >
-        <ListSubheader>DeepSeek Models</ListSubheader>
+        {/*<ListSubheader>DeepSeek Models</ListSubheader>
         {deepseekModels.map((model) => (
           <MenuItem key={model.id} value={model.id}>
             <Box
@@ -76,7 +76,7 @@ export const ModelSelector = ({
               </Tooltip>
             </Box>
           </MenuItem>
-        ))}
+        ))}*/}
         
         <ListSubheader>ChatGPT Models</ListSubheader>
         {chatgptModels.map((model) => (
